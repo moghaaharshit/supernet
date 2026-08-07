@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Super Net</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .auth-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .auth-card h1 {
+            font-size: 1.8rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .auth-link {
+            display: block;
+            margin-top: 1.5rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="glass-panel auth-card">
+            <h1>Create Account</h1>
+            <form id="registerForm">
+                <div class="form-group" style="text-align: left;">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="email" required placeholder="you@example.com">
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <span>Sign Up</span>
+                    <i data-lucide="user-plus"></i>
+                </button>
+            </form>
+            <a href="../index.html" class="auth-link">Already have an account? Sign in</a>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { app } from "./js/firebase-config.js";
+
+        lucide.createIcons();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.innerHTML = 'Creating Account...';
+                const auth = getAuth(app);
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, { displayName: name });
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                alert('Error: ' + error.message);
+                btn.innerHTML = originalText;
+            }
+        });
+    </script>
+<script src="js/voice-assistant.js"></script>
+</body>
+</html>

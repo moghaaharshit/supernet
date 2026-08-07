@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Connection - Super Net</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1.2rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .status-connected { background: rgba(16,185,129,0.15); color: var(--success); }
+        .status-connected .status-dot { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .status-qr { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .status-qr .status-dot { background: var(--warning); }
+        .status-disconnected { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+        .status-disconnected .status-dot { background: var(--text-secondary); }
+        .status-initializing { background: rgba(99,102,241,0.15); color: var(--primary); }
+        .status-initializing .status-dot { background: var(--primary); animation: pulse 1s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        #qrImage {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            max-width: 280px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="logo">
+            <i data-lucide="message-square"></i> Super Net
+        </div>
+        <button class="hamburger" id="hamburgerBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel" id="sidebar">
+            <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="message-square" style="color: var(--primary);"></i> Super Net
+            </div>
+            <nav style="flex: 1;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="qr.html" class="nav-item active">
+                    <i data-lucide="smartphone"></i> WhatsApp
+                </a>
+                <a href="send.html" class="nav-item">
+                    <i data-lucide="send"></i> Send Message
+                </a>
+                <a href="excel.html" class="nav-item">
+                    <i data-lucide="file-spreadsheet"></i> Insert Excel
+                </a>
+                <a href="rules.html" class="nav-item">
+                    <i data-lucide="list"></i> Rules
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i data-lucide="bar-chart-2"></i> Analytics
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1>WhatsApp Connection</h1>
+                    <p>Connect your WhatsApp account to enable auto-replies.</p>
+                </div>
+            </header>
+
+            <div class="glass-panel" style="padding: 3rem; text-align: center; max-width: 600px; margin: 0 auto;">
+
+                <!-- Status Badge -->
+                <div id="statusBadge" class="status-badge status-disconnected">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Checking...</span>
+                </div>
+
+                <!-- QR Code State -->
+                <div id="qrContainer" style="display: none;">
+                    <h3 style="margin-bottom: 0.75rem;">Scan QR Code</h3>
+                    <p style="margin-bottom: 2rem; color: var(--text-secondary);">Open WhatsApp on your phone → <strong>Linked Devices</strong> → <strong>Link a Device</strong></p>
+                    <img id="qrImage" src="" alt="QR Code">
+                    <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">QR code refreshes automatically every 20 seconds</p>
+                    <button class="btn btn-outline" id="regenBtn" style="margin-top: 1rem;">
+                        <i data-lucide="refresh-cw" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px;"></i>
+                        Regenerate QR Code
+                    </button>
+                </div>
+
+                <!-- Connected State -->
+                <div id="connectedContainer" style="display: none;">
+                    <div style="width: 80px; height: 80px; background: rgba(16, 185, 129, 0.2); color: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                        <i data-lucide="check-circle" style="width: 40px; height: 40px;"></i>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem;">Successfully Connected</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;" id="waUserInfo">Ready to send auto-replies.</p>
+                    <button class="btn btn-outline" id="disconnectBtn" style="color: var(--danger); border-color: var(--danger);">
+                        <i data-lucide="log-out" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px;"></i>
+                        Disconnect WhatsApp
+                    </button>
+                </div>
+
+                <!-- Initializing / Loading State -->
+                <div id="initializingContainer" style="display: none;">
+                    <div class="spinner"></div>
+                    <h3 style="margin-bottom: 0.5rem;" id="initTitle">Initializing...</h3>
+                    <p style="color: var(--text-secondary);" id="initDesc">Please wait while we start the WhatsApp client.</p>
+                </div>
+
+                <!-- Disconnected / Start State -->
+                <div id="initContainer" style="display: none;">
+                    <div style="width: 80px; height: 80px; background: rgba(99,102,241,0.15); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                        <i data-lucide="smartphone" style="width: 40px; height: 40px;"></i>
+                    </div>
+                    <h3 style="margin-bottom: 0.5rem;">Not Connected</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Click below to start WhatsApp and get a QR code.</p>
+                    <button class="btn btn-primary" id="initBtn">
+                        <i data-lucide="zap" style="width:16px;height:16px;display:inline-block;vertical-align:middle;margin-right:6px;"></i>
+                        Connect WhatsApp
+                    </button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        lucide.createIcons();
+
+        // Mobile Menu Toggle
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            hamburgerBtn.classList.toggle('active');
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        hamburgerBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        // Close sidebar when clicking a nav item on mobile
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+
+        let pollingInterval = null;
+        let isDisconnecting = false;
+
+        function updateUI(data) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            const qrContainer = document.getElementById('qrContainer');
+            const connectedContainer = document.getElementById('connectedContainer');
+            const initializingContainer = document.getElementById('initializingContainer');
+            const initContainer = document.getElementById('initContainer');
+
+            // Hide all
+            qrContainer.style.display = 'none';
+            connectedContainer.style.display = 'none';
+            initializingContainer.style.display = 'none';
+            initContainer.style.display = 'none';
+
+            // Remove all badge classes
+            badge.className = 'status-badge';
+
+            if (isDisconnecting) {
+                badge.classList.add('status-initializing');
+                statusText.textContent = 'Disconnecting...';
+                initializingContainer.style.display = 'block';
+                document.getElementById('initTitle').textContent = 'Disconnecting...';
+                document.getElementById('initDesc').textContent = 'Clearing session data. New QR code will appear shortly.';
+                return;
+            }
+
+            if (data.status === 'CONNECTED') {
+                badge.classList.add('status-connected');
+                statusText.textContent = 'Connected';
+                connectedContainer.style.display = 'block';
+                if (data.userInfo) {
+                    document.getElementById('waUserInfo').textContent =
+                        `Connected as ${data.userInfo.pushname || data.userInfo.wid?.user || 'User'}`;
+                }
+            } else if (data.status === 'QR_READY') {
+                badge.classList.add('status-qr');
+                statusText.textContent = 'Scan QR Code';
+                qrContainer.style.display = 'block';
+                if (data.qrCodeData) {
+                    document.getElementById('qrImage').src = data.qrCodeData;
+                }
+            } else if (data.status === 'INITIALIZING') {
+                badge.classList.add('status-initializing');
+                statusText.textContent = 'Initializing...';
+                initializingContainer.style.display = 'block';
+                document.getElementById('initTitle').textContent = 'Starting WhatsApp...';
+                document.getElementById('initDesc').textContent = 'Please wait while we generate the QR code.';
+            } else if (data.status === 'ERROR') {
+                badge.classList.add('status-disconnected');
+                badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                badge.style.color = 'var(--danger)';
+                statusText.textContent = 'Error - Client Failed';
+                initContainer.style.display = 'block';
+                document.querySelector('#initContainer h3').textContent = 'Connection Failed';
+                document.querySelector('#initContainer p').textContent = 'WhatsApp client failed to start. This may happen on free hosting due to resource limits. Please try again or contact support.';
+            } else {
+                // DISCONNECTED
+                badge.classList.add('status-disconnected');
+                statusText.textContent = 'Disconnected';
+                initContainer.style.display = 'block';
+            }
+
+            lucide.createIcons();
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/whatsapp/status');
+                const data = await res.json();
+                updateUI(data);
+                // Once we get QR or Connected, clear the disconnecting flag
+                if (data.status === 'QR_READY' || data.status === 'CONNECTED') {
+                    isDisconnecting = false;
+                }
+            } catch (err) {
+                console.error('Status check failed:', err);
+            }
+        }
+
+        document.getElementById('initBtn').addEventListener('click', async () => {
+            document.getElementById('initContainer').style.display = 'none';
+            document.getElementById('initializingContainer').style.display = 'block';
+            document.getElementById('initTitle').textContent = 'Starting WhatsApp...';
+            document.getElementById('initDesc').textContent = 'Please wait while we generate the QR code.';
+
+            try {
+                await fetch('/api/whatsapp/connect', { method: 'POST' });
+            } catch (e) {}
+            checkStatus();
+        });
+
+        document.getElementById('regenBtn').addEventListener('click', async () => {
+            // Disconnect and re-connect to get a new QR
+            isDisconnecting = true;
+            updateUI({ status: 'DISCONNECTING' });
+            try {
+                await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+            } catch (e) {}
+            checkStatus();
+        });
+
+        document.getElementById('disconnectBtn').addEventListener('click', async () => {
+            isDisconnecting = true;
+            updateUI({ status: 'DISCONNECTING' });
+
+            try {
+                await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+            } catch (e) {}
+
+            // Keep polling; once backend sends QR_READY, isDisconnecting will be cleared
+            checkStatus();
+        });
+
+        // Poll every 3 seconds
+        checkStatus();
+        setInterval(checkStatus, 3000);
+    </script>
+<script src="js/voice-assistant.js"></script>
+</body>
+</html>

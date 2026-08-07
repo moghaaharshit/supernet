@@ -1,0 +1,26 @@
+{
+  "name": "super-net",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.16",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "firebase": "^12.16.0",
+    "localtunnel": "^2.0.2",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4",
+    "tunnelmole": "^2.4.0",
+    "xlsx": "^0.18.5"
+  }
+}

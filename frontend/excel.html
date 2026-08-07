@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insert Excel - Super Net</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        .upload-container {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 40vh;
+            padding: 2rem;
+        }
+        .upload-card {
+            width: 100%;
+            max-width: 700px;
+            padding: 2.5rem;
+        }
+        .upload-card h2 {
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .upload-card .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .upload-box {
+            border: 2px dashed var(--surface-border);
+            border-radius: var(--radius-md);
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .upload-box:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .upload-box.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .upload-box.has-file {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-icon i {
+            color: var(--primary);
+            width: 32px;
+            height: 32px;
+        }
+        .upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        .upload-text strong {
+            color: var(--primary);
+        }
+        .file-info {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .file-info.show { display: block; }
+        .file-info .file-name {
+            color: var(--success);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            word-break: break-all;
+        }
+        .file-info .file-size {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Progress Bar */
+        .progress-container { display: none; margin-top: 2rem; }
+        .progress-container.show { display: block; }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .progress-label { color: var(--text-primary); font-weight: 500; }
+        .progress-percent { color: var(--primary); font-weight: 600; }
+        .progress-bar { height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 4px; transition: width 0.3s ease; width: 0%; }
+        .progress-status { margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+
+        /* Error State */
+        .error-state { display: none; margin-top: 1rem; padding: 1rem; background: rgba(239, 68, 68, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .error-state.show { display: block; }
+        .error-state .error-msg { color: var(--danger); font-weight: 500; display: flex; align-items: center; gap: 0.5rem; word-break: break-word; }
+
+        /* Fullscreen Data Modal */
+        .fullscreen-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--background);
+            z-index: 2000;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+        .fullscreen-modal.show { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--surface-border);
+            flex-shrink: 0;
+        }
+        .modal-header-left { display: flex; align-items: center; gap: 1rem; }
+        .modal-header-left h3 { margin: 0; font-size: 1.25rem; }
+        .modal-header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .modal-close-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+        .modal-close-btn:hover { background: rgba(239, 68, 68, 0.3); color: var(--danger); }
+        .modal-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 1rem; }
+
+        /* Notify Button */
+        .notify-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .notify-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .notify-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Store Table Button */
+        .store-table-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .store-table-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+
+        /* Sheet Tabs in Modal */
+        .modal-sheet-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; flex-shrink: 0; }
+        .modal-sheet-tab {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        .modal-sheet-tab:hover { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
+        .modal-sheet-tab.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-color: transparent; }
+
+        /* Data Table in Modal */
+        .modal-data-wrapper { flex: 1; overflow: auto; border-radius: var(--radius-md); border: 1px solid var(--surface-border); -webkit-overflow-scrolling: touch; }
+        .modal-data-table { width: 100%; border-collapse: collapse; min-width: 400px; }
+        .modal-data-table th {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            position: sticky; top: 0; z-index: 1;
+            white-space: normal; word-wrap: break-word; word-break: break-word;
+            max-width: 200px; min-width: 100px;
+            border-right: 1px solid var(--surface-border);
+            border-bottom: 2px solid var(--surface-border);
+        }
+        .modal-data-table th:last-child { border-right: none; }
+        .modal-data-table td {
+            padding: 0.65rem 1rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            border-right: 1px solid var(--surface-border);
+            border-bottom: 1px solid var(--surface-border);
+        }
+        .modal-data-table td:last-child { border-right: none; }
+        .modal-data-table tr:hover td { background: rgba(99, 102, 241, 0.05); }
+        .modal-data-table tr:last-child td { border-bottom: none; }
+        .modal-data-wrapper::-webkit-scrollbar { height: 8px; width: 8px; }
+        .modal-data-wrapper::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        .modal-data-wrapper::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+
+        /* Editable cell */
+        .modal-data-table td.editable {
+            cursor: pointer;
+            position: relative;
+        }
+        .modal-data-table td.editable:hover {
+            background: rgba(99, 102, 241, 0.1);
+            outline: 2px solid var(--primary);
+            outline-offset: -2px;
+        }
+        .modal-data-table td.editing {
+            padding: 0;
+        }
+        .modal-data-table td.editing input {
+            width: 100%;
+            height: 100%;
+            padding: 0.65rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--primary);
+            border-radius: 0;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            box-sizing: border-box;
+        }
+        .modal-data-table td.editing input:focus {
+            outline: none;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Empty State in Modal */
+        .modal-empty-state { text-align: center; padding: 4rem; color: var(--text-secondary); }
+        .modal-empty-state i { width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5; }
+
+        /* Stored Tables Section */
+        .stored-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--surface-border);
+        }
+        .stored-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .stored-section-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+        .stored-section-header .count {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .stored-tables-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .stored-table-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        .stored-table-item:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+        .stored-table-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .stored-table-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.2));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .stored-table-icon i {
+            color: var(--primary);
+            width: 20px;
+            height: 20px;
+        }
+        .stored-table-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .stored-table-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+        .stored-table-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .stored-table-actions button {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+        }
+        .stored-table-actions button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+        .stored-table-actions button.edit-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .stored-table-actions button.delete-btn:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+        .stored-table-actions button.notify-table-btn {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+        .stored-table-actions button.notify-table-btn:hover {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border-color: var(--success);
+        }
+        .stored-table-actions button i {
+            width: 16px;
+            height: 16px;
+        }
+        .no-tables {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .no-tables i {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 0.75rem;
+            opacity: 0.4;
+        }
+
+        /* Table Name Modal */
+        .table-name-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .table-name-modal.show { display: flex; }
+        .table-name-modal-content {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .table-name-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .table-name-modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .table-name-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .table-name-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .table-name-input::placeholder {
+            color: var(--text-secondary);
+        }
+        .table-name-modal-btns {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .table-name-modal-btns button {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+        .btn-cancel-table {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--surface-border) !important;
+        }
+        .btn-cancel-table:hover { background: rgba(255, 255, 255, 0.15); }
+        .btn-save-table {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        .btn-save-table:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+
+        /* Edit Options Modal */
+        .edit-options-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .edit-options-modal.show { display: flex; }
+        .edit-options-content {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            animation: slideUp 0.3s ease;
+        }
+        .edit-options-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .edit-options-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .edit-option-btn {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 0.75rem;
+            text-align: left;
+        }
+        .edit-option-btn:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+        .edit-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .edit-option-icon.manual {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.1));
+        }
+        .edit-option-icon.manual i { color: var(--primary); width: 24px; height: 24px; }
+        .edit-option-icon.replace {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1));
+        }
+        .edit-option-icon.replace i { color: var(--warning); width: 24px; height: 24px; }
+        .edit-option-text h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; }
+        .edit-option-text p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+
+        /* Confirm Delete Modal */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .confirm-modal.show { display: flex; }
+        .confirm-modal-content {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+        .confirm-modal-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(239, 68, 68, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+        .confirm-modal-icon i { color: var(--danger); width: 32px; height: 32px; }
+        .confirm-modal-content h3 { margin: 0 0 0.5rem 0; font-size: 1.2rem; }
+        .confirm-modal-content p { margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem; }
+        .confirm-modal-btns { display: flex; gap: 1rem; }
+        .confirm-modal-btns button {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        /* Notification Settings Modal */
+        .notify-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .notify-modal.show { display: flex; }
+        .notify-modal-content {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 100%;
+            max-width: 450px;
+            animation: slideUp 0.3s ease;
+        }
+        .notify-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .notify-modal-header h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .notify-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            border: 1px solid var(--surface-border);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .notify-option:hover { border-color: var(--primary); }
+        .notify-option.selected { border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
+        .notify-option input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; }
+        .notify-option-label { flex: 1; }
+        .notify-option-label h4 { margin: 0 0 0.25rem 0; font-size: 0.95rem; }
+        .notify-option-label p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); }
+        .notify-days-input { display: flex; align-items: center; gap: 0.5rem; }
+        .notify-days-input input {
+            width: 70px;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 1rem;
+            text-align: center;
+        }
+        .notify-days-input input:focus { outline: none; border-color: var(--primary); }
+        .notify-send-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .notify-send-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+
+        /* Circular Progress */
+        .circular-progress-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 4000;
+            align-items: center;
+            justify-content: center;
+        }
+        .circular-progress-modal.show { display: flex; }
+        .circular-progress-container { text-align: center; }
+        .circular-progress {
+            width: 180px; height: 180px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0deg, var(--primary) var(--progress), rgba(255,255,255,0.1) var(--progress), rgba(255,255,255,0.1) 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            position: relative;
+            transition: background 0.3s ease;
+        }
+        .circular-progress::before {
+            content: '';
+            position: absolute;
+            width: 150px; height: 150px;
+            background: var(--background);
+            border-radius: 50%;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+        .circular-progress.pulsing { animation: pulse 1.5s ease-in-out infinite; }
+        .circular-progress-text { position: relative; z-index: 1; text-align: center; }
+        .circular-progress-text .percent { font-size: 2.5rem; font-weight: 700; color: var(--text-primary); }
+        .circular-progress-text .label { font-size: 0.85rem; color: var(--text-secondary); }
+        .progress-status-text { color: var(--text-secondary); font-size: 1rem; margin-top: 1rem; }
+        .progress-count { color: var(--primary); font-weight: 600; }
+
+        /* All Done Animation */
+        .all-done-container { display: none; text-align: center; }
+        .all-done-container.show { display: block; }
+        .all-done-checkmark {
+            width: 100px; height: 100px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, var(--success), #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: scaleIn 0.5s ease;
+        }
+        @keyframes scaleIn { from { transform: scale(0); } to { transform: scale(1); } }
+        .all-done-checkmark i { width: 50px; height: 50px; color: white; }
+        .all-done-title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; }
+        .all-done-subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+        .all-done-stats { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; }
+        .all-done-stat { text-align: center; }
+        .all-done-stat-value { font-size: 1.75rem; font-weight: 700; color: var(--success); }
+        .all-done-stat-label { font-size: 0.85rem; color: var(--text-secondary); }
+        .all-done-close-btn {
+            padding: 0.75rem 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .all-done-close-btn:hover { background: rgba(255, 255, 255, 0.15); }
+
+        /* Save Success Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--success);
+            border-radius: var(--radius-sm);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 5000;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+        .toast-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(16, 185, 129, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-icon i { color: var(--success); width: 18px; height: 18px; }
+        .toast-text { font-weight: 500; color: var(--text-primary); }
+
+        /* Hidden file input for replace */
+        .hidden-input { display: none; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .upload-container { padding: 1rem; min-height: auto; }
+            .upload-card { padding: 1.5rem; }
+            .upload-box { padding: 2rem 1rem; }
+            .upload-icon { width: 50px; height: 50px; }
+            .upload-icon i { width: 24px; height: 24px; }
+            .modal-header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
+            .modal-header-left h3 { font-size: 1rem; }
+            .modal-body { padding: 0.75rem; }
+            .modal-data-table th { padding: 0.5rem 0.6rem; font-size: 0.8rem; max-width: 150px; min-width: 80px; }
+            .modal-data-table td { padding: 0.5rem 0.6rem; font-size: 0.8rem; max-width: 150px; }
+            .modal-sheet-tab { font-size: 0.8rem; padding: 0.4rem 0.8rem; }
+            .notify-btn, .store-table-btn { padding: 0.5rem 0.8rem; font-size: 0.8rem; }
+            .notify-modal-content, .table-name-modal-content, .edit-options-content, .confirm-modal-content { padding: 1.5rem; }
+            .circular-progress { width: 150px; height: 150px; }
+            .circular-progress::before { width: 125px; height: 125px; }
+            .stored-table-item { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .stored-table-actions { width: 100%; justify-content: flex-end; }
+        }
+        @media (max-width: 480px) {
+            .upload-card { padding: 1rem; }
+            .upload-card h2 { font-size: 1.25rem; }
+            .modal-data-table th { padding: 0.4rem 0.5rem; font-size: 0.7rem; max-width: 120px; min-width: 70px; }
+            .modal-data-table td { padding: 0.4rem 0.5rem; font-size: 0.7rem; max-width: 120px; }
+            .modal-close-btn { width: 36px; height: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="logo">
+            <i data-lucide="message-square"></i> Super Net
+        </div>
+        <button class="hamburger" id="hamburgerBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel" id="sidebar">
+            <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="message-square" style="color: var(--primary);"></i> Super Net
+            </div>
+            <nav style="flex: 1;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="qr.html" class="nav-item">
+                    <i data-lucide="smartphone"></i> WhatsApp
+                </a>
+                <a href="send.html" class="nav-item">
+                    <i data-lucide="send"></i> Send Message
+                </a>
+                <a href="excel.html" class="nav-item active">
+                    <i data-lucide="file-spreadsheet"></i> Insert Excel
+                </a>
+                <a href="rules.html" class="nav-item">
+                    <i data-lucide="list"></i> Rules
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i data-lucide="bar-chart-2"></i> Analytics
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1>Insert Excel</h1>
+                    <p>Upload an Excel file to extract and view your data.</p>
+                </div>
+            </header>
+
+            <div class="upload-container">
+                <div class="glass-panel upload-card">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.1)); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="file-spreadsheet" style="color: var(--primary); width: 24px; height: 24px;"></i>
+                        </div>
+                        <h2 style="margin: 0;">Upload Excel File</h2>
+                    </div>
+                    <p class="subtitle">Choose an Excel file (.xlsx, .xls) to extract and view the data.</p>
+
+                    <!-- Upload Box -->
+                    <div class="upload-box" id="uploadBox">
+                        <div class="upload-icon">
+                            <i data-lucide="upload-cloud"></i>
+                        </div>
+                        <p class="upload-text">
+                            <strong>Click to choose file</strong> or drag and drop
+                        </p>
+                        <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">
+                            Supported formats: .xlsx, .xls, .csv
+                        </p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                    </div>
+
+                    <!-- File Info -->
+                    <div class="file-info" id="fileInfo">
+                        <div class="file-name">
+                            <i data-lucide="file-check" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+                            <span id="fileName">file.xlsx</span>
+                        </div>
+                        <div class="file-size" id="fileSize">0 KB</div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div class="error-state" id="errorState">
+                        <div class="error-msg">
+                            <i data-lucide="alert-circle" style="width: 18px; height: 18px; flex-shrink: 0;"></i>
+                            <span id="errorMsg">Error reading file</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress-container" id="progressContainer">
+                        <div class="progress-header">
+                            <span class="progress-label">Reading & Extracting...</span>
+                            <span class="progress-percent" id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-status" id="progressStatus">Initializing...</div>
+                    </div>
+
+                    <!-- Stored Tables Section -->
+                    <div class="stored-section">
+                        <div class="stored-section-header">
+                            <i data-lucide="database" style="width: 20px; height: 20px; color: var(--primary);"></i>
+                            <h3>Stored Tables</h3>
+                            <span class="count" id="storedTablesCount">0</span>
+                        </div>
+                        <div class="stored-tables-list" id="storedTablesList">
+                            <div class="no-tables" id="noTablesMsg">
+                                <i data-lucide="inbox"></i>
+                                <p>No tables stored yet. Upload an Excel file and save it.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Fullscreen Data Modal -->
+    <div class="fullscreen-modal" id="dataModal">
+        <div class="modal-header">
+            <div class="modal-header-left">
+                <i data-lucide="table" style="color: var(--primary); width: 24px; height: 24px;"></i>
+                <h3 id="modalTitle">Extracted Data</h3>
+                <span class="data-count" id="modalDataCount">0 rows</span>
+            </div>
+            <div class="modal-header-right">
+                <button class="store-table-btn" id="storeTableBtn">
+                    <i data-lucide="save" style="width: 18px; height: 18px;"></i>
+                    Store Users Table
+                </button>
+                <button class="modal-close-btn" id="modalCloseBtn">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-sheet-tabs" id="modalSheetTabs"></div>
+            <div class="modal-data-wrapper">
+                <table class="modal-data-table" id="modalDataTable">
+                    <thead id="modalTableHead"></thead>
+                    <tbody id="modalTableBody"></tbody>
+                </table>
+            </div>
+            <div class="modal-empty-state" id="modalEmptyState" style="display: none;">
+                <i data-lucide="inbox"></i>
+                <h3>No Data</h3>
+                <p>This sheet is empty or contains no data.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Name Modal -->
+    <div class="table-name-modal" id="tableNameModal">
+        <div class="table-name-modal-content">
+            <div class="table-name-modal-header">
+                <h3>
+                    <i data-lucide="save" style="width: 24px; height: 24px; color: var(--primary);"></i>
+                    Save Table
+                </h3>
+                <button class="modal-close-btn" id="tableNameModalCloseBtn">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                </button>
+            </div>
+            <input type="text" class="table-name-input" id="tableNameInput" placeholder="Enter table name (e.g., Users, WiFi Customers)">
+            <div class="table-name-modal-btns">
+                <button class="btn-cancel-table" id="cancelTableNameBtn">Cancel</button>
+                <button class="btn-save-table" id="saveTableNameBtn">
+                    <i data-lucide="check" style="width: 18px; height: 18px; display: inline; vertical-align: middle; margin-right: 6px;"></i>
+                    Save Table
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Options Modal -->
+    <div class="edit-options-modal" id="editOptionsModal">
+        <div class="edit-options-content">
+            <div class="edit-options-header">
+                <h3>
+                    <i data-lucide="edit" style="width: 24px; height: 24px; color: var(--primary);"></i>
+                    Edit Table
+                </h3>
+                <button class="modal-close-btn" id="editOptionsModalCloseBtn">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                </button>
+            </div>
+            <button class="edit-option-btn" id="editManuallyBtn">
+                <div class="edit-option-icon manual">
+                    <i data-lucide="pencil"></i>
+                </div>
+                <div class="edit-option-text">
+                    <h4>Edit Manually</h4>
+                    <p>Click on any cell to edit the data directly</p>
+                </div>
+            </button>
+            <button class="edit-option-btn" id="replaceExcelBtn">
+                <div class="edit-option-icon replace">
+                    <i data-lucide="replace"></i>
+                </div>
+                <div class="edit-option-text">
+                    <h4>Replace Excel File</h4>
+                    <p>Upload a new Excel file to replace the existing data</p>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="confirm-modal" id="confirmDeleteModal">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-icon">
+                <i data-lucide="trash-2"></i>
+            </div>
+            <h3>Delete Table?</h3>
+            <p id="confirmDeleteText">Are you sure you want to delete this table? This action cannot be undone.</p>
+            <div class="confirm-modal-btns">
+                <button class="btn-cancel-table" id="cancelDeleteBtn">Cancel</button>
+                <button class="btn-save-table" id="confirmDeleteBtn" style="background: linear-gradient(135deg, var(--danger), #dc2626);">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for replace -->
+    <input type="file" id="replaceFileInput" class="hidden-input" accept=".xlsx,.xls,.csv">
+
+    <!-- Notification Settings Modal -->
+    <div class="notify-modal" id="notifyModal">
+        <div class="notify-modal-content" style="max-width: 500px;">
+            <div class="notify-modal-header">
+                <h3>
+                    <i data-lucide="bell-ring" style="width: 24px; height: 24px; color: var(--primary);"></i>
+                    <span id="notifyModalTitle">Notification Settings</span>
+                </h3>
+                <button class="modal-close-btn" id="notifyModalCloseBtn">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                </button>
+            </div>
+
+            <!-- Before Expiry Settings -->
+            <div style="margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <i data-lucide="bell" style="width: 20px; height: 20px; color: var(--success);"></i>
+                    <h4 style="margin: 0; color: var(--text-primary);">Before Expiry Reminder</h4>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <label style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">Send before:</label>
+                    <input type="number" id="beforeDays" value="7" min="1" max="365" style="width: 70px; padding: 0.5rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem; text-align: center;">
+                    <span style="color: var(--text-secondary); font-size: 0.85rem;">days of expiry</span>
+                </div>
+                <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
+                <textarea id="beforeExpiryMsg" rows="3" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.9rem; resize: vertical; box-sizing: border-box;" placeholder="Enter message for users whose plan is about to expire...">Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!</textarea>
+            </div>
+
+            <div style="border-top: 1px solid var(--surface-border); padding-top: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                    <i data-lucide="alert-circle" style="width: 20px; height: 20px; color: var(--danger);"></i>
+                    <h4 style="margin: 0; color: var(--text-primary);">Expired Plan Message</h4>
+                </div>
+                <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
+                <textarea id="expiredMsg" rows="3" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.9rem; resize: vertical; box-sizing: border-box;" placeholder="Enter message for users whose plan has expired...">Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!</textarea>
+            </div>
+
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(99, 102, 241, 0.2);">
+                <strong>Variables:</strong> Use <code>{name}</code> for user name, <code>{days}</code> for days, <code>{plan}</code> for plan name
+            </div>
+
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-cancel-table" id="notifySaveSettingsBtn" style="flex: 1;">
+                    <i data-lucide="save" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 6px;"></i>
+                    Save Settings
+                </button>
+                <button class="notify-send-btn" id="notifySendBtn" style="flex: 2; margin-top: 0;">
+                    <i data-lucide="play" style="width: 18px; height: 18px;"></i>
+                    Start Notifying
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Circular Progress Modal -->
+    <div class="circular-progress-modal" id="progressModal">
+        <div class="circular-progress-container">
+            <div id="progressState" style="display: flex; justify-content: center; gap: 2rem;">
+                <div style="text-align: center;">
+                    <div class="circular-progress" id="circularProgress" style="--progress: 0deg;">
+                        <div class="circular-progress-text">
+                            <div class="percent" id="progressPercentText">0%</div>
+                            <div class="label" style="color:var(--success); font-size:11px; font-weight:bold;">WhatsApp</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="circular-progress" id="smsCircularProgress" style="--progress: 0deg; background: conic-gradient(#6366f1 var(--progress), transparent 0deg);">
+                        <div class="circular-progress-text">
+                            <div class="percent" id="smsProgressPercentText">0%</div>
+                            <div class="label" style="color:#6366f1; font-size:11px; font-weight:bold;">SMS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-status-text" id="progressStatusTextContainer" style="margin-top: 1rem; text-align: center;">
+                Sending notifications... <span class="progress-count" id="progressCount">0/0</span>
+            </div>
+            <div class="all-done-container" id="allDoneState">
+                <div class="all-done-checkmark">
+                    <i data-lucide="check" style="width: 50px; height: 50px;"></i>
+                </div>
+                <div class="all-done-title">All Done! 🎉</div>
+                <div class="all-done-subtitle">Notifications sent successfully</div>
+                <div class="all-done-stats">
+                    <div class="all-done-stat">
+                        <div class="all-done-stat-value" id="totalSent">0</div>
+                        <div class="all-done-stat-label">Sent</div>
+                    </div>
+                    <div class="all-done-stat">
+                        <div class="all-done-stat-value" id="totalFailed">0</div>
+                        <div class="all-done-stat-label">Failed</div>
+                    </div>
+                </div>
+                <button class="all-done-close-btn" id="allDoneCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+
+            // Mobile Menu Toggle
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            function toggleSidebar() {
+                hamburgerBtn.classList.toggle('active');
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+            hamburgerBtn.addEventListener('click', toggleSidebar);
+            sidebarOverlay.addEventListener('click', toggleSidebar);
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => { if (window.innerWidth <= 768) toggleSidebar(); });
+            });
+
+            // ==================== ELEMENTS ====================
+            const dataModal = document.getElementById('dataModal');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const modalSheetTabs = document.getElementById('modalSheetTabs');
+            const modalTableHead = document.getElementById('modalTableHead');
+            const modalTableBody = document.getElementById('modalTableBody');
+            const modalDataCount = document.getElementById('modalDataCount');
+            const modalEmptyState = document.getElementById('modalEmptyState');
+            const storeTableBtn = document.getElementById('storeTableBtn');
+
+            // Table Name Modal
+            const tableNameModal = document.getElementById('tableNameModal');
+            const tableNameModalCloseBtn = document.getElementById('tableNameModalCloseBtn');
+            const tableNameInput = document.getElementById('tableNameInput');
+            const cancelTableNameBtn = document.getElementById('cancelTableNameBtn');
+            const saveTableNameBtn = document.getElementById('saveTableNameBtn');
+
+            // Edit Options Modal
+            const editOptionsModal = document.getElementById('editOptionsModal');
+            const editOptionsModalCloseBtn = document.getElementById('editOptionsModalCloseBtn');
+            const editManuallyBtn = document.getElementById('editManuallyBtn');
+            const replaceExcelBtn = document.getElementById('replaceExcelBtn');
+            const replaceFileInput = document.getElementById('replaceFileInput');
+
+            // Confirm Delete Modal
+            const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+            const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            const confirmDeleteText = document.getElementById('confirmDeleteText');
+
+            // Notify Modal
+            const notifyModal = document.getElementById('notifyModal');
+            const notifyModalCloseBtn = document.getElementById('notifyModalCloseBtn');
+            const notifySendBtn = document.getElementById('notifySendBtn');
+            const beforeOption = document.getElementById('beforeOption');
+            const afterOption = document.getElementById('afterOption');
+            const beforeCheckbox = document.getElementById('beforeCheckbox');
+            const afterCheckbox = document.getElementById('afterCheckbox');
+            const beforeDays = document.getElementById('beforeDays');
+            const afterDays = document.getElementById('afterDays');
+
+            // Progress Modal
+            const progressModal = document.getElementById('progressModal');
+            const circularProgress = document.getElementById('circularProgress');
+            const progressPercentText = document.getElementById('progressPercentText');
+            const progressCount = document.getElementById('progressCount');
+            const progressState = document.getElementById('progressState');
+            const allDoneState = document.getElementById('allDoneState');
+            const allDoneCloseBtn = document.getElementById('allDoneCloseBtn');
+            const totalSent = document.getElementById('totalSent');
+            const totalFailed = document.getElementById('totalFailed');
+
+            // Stored Tables
+            const storedTablesList = document.getElementById('storedTablesList');
+            const storedTablesCount = document.getElementById('storedTablesCount');
+            const noTablesMsg = document.getElementById('noTablesMsg');
+
+            let workbookData = null;
+            let currentSheet = 0;
+            let extractedData = [];
+            let headers = [];
+            let storedTables = [];
+            let editingTableId = null;
+            let editingTableData = null;
+            let deletingTableId = null;
+
+            // ==================== UTILITY ====================
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.innerHTML = `
+                    <div class="toast-icon"><i data-lucide="check"></i></div>
+                    <span class="toast-text">${message}</span>
+                `;
+                document.body.appendChild(toast);
+                lucide.createIcons();
+                setTimeout(() => toast.remove(), 3000);
+            }
+
+            // ==================== CLOSE MODALS ====================
+            modalCloseBtn.addEventListener('click', () => {
+                dataModal.classList.remove('show');
+                document.body.style.overflow = '';
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (progressModal.classList.contains('show')) return;
+                    if (notifyModal.classList.contains('show')) { notifyModal.classList.remove('show'); return; }
+                    if (tableNameModal.classList.contains('show')) { tableNameModal.classList.remove('show'); return; }
+                    if (editOptionsModal.classList.contains('show')) { editOptionsModal.classList.remove('show'); return; }
+                    if (confirmDeleteModal.classList.contains('show')) { confirmDeleteModal.classList.remove('show'); return; }
+                    if (dataModal.classList.contains('show')) { dataModal.classList.remove('show'); document.body.style.overflow = ''; }
+                }
+            });
+
+            // ==================== STORE TABLE ====================
+            storeTableBtn.addEventListener('click', () => {
+                tableNameInput.value = '';
+                tableNameModal.classList.add('show');
+                tableNameInput.focus();
+            });
+
+            tableNameModalCloseBtn.addEventListener('click', () => tableNameModal.classList.remove('show'));
+            cancelTableNameBtn.addEventListener('click', () => tableNameModal.classList.remove('show'));
+
+            saveTableNameBtn.addEventListener('click', async () => {
+                const name = tableNameInput.value.trim();
+                if (!name) {
+                    tableNameInput.style.borderColor = 'var(--danger)';
+                    return;
+                }
+                tableNameInput.style.borderColor = '';
+                
+                try {
+                    const response = await fetch('/api/tables', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, headers, data: extractedData })
+                    });
+                    const result = await response.json();
+                    if (result.id) {
+                        tableNameModal.classList.remove('show');
+                        dataModal.classList.remove('show');
+                        document.body.style.overflow = '';
+                        showToast('Table saved successfully!');
+                        loadStoredTables();
+                    }
+                } catch (error) {
+                    console.error('Error saving table:', error);
+                    alert('Error saving table: ' + error.message);
+                }
+            });
+
+            tableNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveTableNameBtn.click();
+            });
+
+            // ==================== LOAD STORED TABLES ====================
+            async function loadStoredTables() {
+                try {
+                    const response = await fetch('/api/tables');
+                    storedTables = await response.json();
+                    renderStoredTables();
+                } catch (error) {
+                    console.error('Error loading tables:', error);
+                }
+            }
+
+            function renderStoredTables() {
+                storedTablesCount.textContent = storedTables.length;
+                
+                if (storedTables.length === 0) {
+                    storedTablesList.innerHTML = `
+                        <div class="no-tables">
+                            <i data-lucide="inbox"></i>
+                            <p>No tables stored yet. Upload an Excel file and save it.</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+
+                storedTablesList.innerHTML = storedTables.map(table => `
+                    <div class="stored-table-item" data-id="${table.id}">
+                        <div class="stored-table-info">
+                            <div class="stored-table-icon">
+                                <i data-lucide="table"></i>
+                            </div>
+                            <div>
+                                <div class="stored-table-name">${table.name}</div>
+                                <div class="stored-table-meta">${table.headers ? table.headers.length : 0} columns • ${table.data ? table.data.length : 0} rows</div>
+                            </div>
+                        </div>
+                        <div class="stored-table-actions">
+                            <button class="notify-table-btn" onclick="openNotifySettings('${table.id}')">
+                                <i data-lucide="bell"></i> Notify
+                            </button>
+                            <button class="edit-btn" onclick="openEditOptions('${table.id}')">
+                                <i data-lucide="edit"></i> Edit
+                            </button>
+                            <button class="delete-btn" onclick="openDeleteConfirm('${table.id}', '${table.name}')">
+                                <i data-lucide="trash-2"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            }
+
+            // ==================== EDIT TABLE ====================
+            window.openEditOptions = (tableId) => {
+                editingTableId = tableId;
+                editingTableData = storedTables.find(t => t.id === tableId);
+                editOptionsModal.classList.add('show');
+            };
+
+            editOptionsModalCloseBtn.addEventListener('click', () => editOptionsModal.classList.remove('show'));
+
+            // Edit Manually
+            editManuallyBtn.addEventListener('click', () => {
+                editOptionsModal.classList.remove('show');
+                if (!editingTableData) return;
+                
+                // Set the data in modal
+                headers = editingTableData.headers;
+                extractedData = editingTableData.data;
+                workbookData = null;
+                
+                document.getElementById('modalTitle').textContent = editingTableData.name;
+                modalSheetTabs.innerHTML = '';
+                
+                // Render table with editable cells
+                renderEditableTable();
+                
+                dataModal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            });
+
+            function renderEditableTable() {
+                if (headers.length === 0) {
+                    modalTableHead.innerHTML = '';
+                    modalTableBody.innerHTML = '';
+                    modalDataCount.textContent = '0 rows';
+                    modalEmptyState.style.display = 'block';
+                    return;
+                }
+
+                modalEmptyState.style.display = 'none';
+
+                modalTableHead.innerHTML = '<tr>' + headers.map(h => 
+                    `<th>${h !== null && h !== undefined ? String(h) : ''}</th>`
+                ).join('') + '</tr>';
+
+                modalTableBody.innerHTML = extractedData.map((row, rowIndex) => 
+                    '<tr>' + headers.map((_, colIndex) => 
+                        `<td class="editable" onclick="editCell(this, ${rowIndex}, ${colIndex})">${row[colIndex] !== undefined && row[colIndex] !== null ? String(row[colIndex]) : ''}</td>`
+                    ).join('') + '</tr>'
+                ).join('');
+
+                modalDataCount.textContent = extractedData.length + ' rows';
+            }
+
+            window.editCell = (td, rowIndex, colIndex) => {
+                if (td.classList.contains('editing')) return;
+                
+                const currentValue = extractedData[rowIndex][colIndex] !== undefined && extractedData[rowIndex][colIndex] !== null ? String(extractedData[rowIndex][colIndex]) : '';
+                
+                td.classList.add('editing');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentValue;
+                td.textContent = '';
+                td.appendChild(input);
+                input.focus();
+                input.select();
+
+                const saveEdit = async () => {
+                    const newValue = input.value;
+                    td.classList.remove('editing');
+                    td.textContent = newValue;
+                    extractedData[rowIndex][colIndex] = newValue;
+                    
+                    // Save to Firebase if editing stored table
+                    if (editingTableId) {
+                        try {
+                            await fetch(`/api/tables/${editingTableId}/cell`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ rowIndex, colIndex, value: newValue })
+                            });
+                        } catch (error) {
+                            console.error('Error saving cell:', error);
+                        }
+                    }
+                };
+
+                input.addEventListener('blur', saveEdit);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') input.blur();
+                    if (e.key === 'Escape') {
+                        input.value = currentValue;
+                        input.blur();
+                    }
+                });
+            };
+
+            // Replace Excel File
+            replaceExcelBtn.addEventListener('click', () => {
+                editOptionsModal.classList.remove('show');
+                replaceFileInput.click();
+            });
+
+            replaceFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file || !editingTableId) return;
+
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        let newWorkbook;
+                        try {
+                            newWorkbook = XLSX.read(data, { type: 'array', cellDates: true });
+                        } catch (err) {
+                            newWorkbook = XLSX.read(event.target.result, { type: 'binary', cellDates: true });
+                        }
+
+                        if (!newWorkbook || !newWorkbook.SheetNames || newWorkbook.SheetNames.length === 0) {
+                            alert('No sheets found in the file.');
+                            return;
+                        }
+
+                        const sheetName = newWorkbook.SheetNames[0];
+                        const worksheet = newWorkbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                        if (jsonData.length === 0) {
+                            alert('The Excel file is empty.');
+                            return;
+                        }
+
+                        // Detect headers
+                        const knownHeaders = ['name', 'phone', 'email', 'customer', 'user', 'address', 'plan', 'expiry', 'mobile', 'whatsapp', 'contact', 'userid', 'mrp', 'area', 'partner', 'volume'];
+                        let headerRowIndex = 0;
+                        
+                        for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            let matchCount = 0;
+                            let validCells = 0;
+                            
+                            for (const cell of row) {
+                                const cellStr = String(cell).toLowerCase().trim();
+                                if (cellStr === '' || cellStr.length > 30) continue;
+                                validCells++;
+                                if (knownHeaders.some(header => cellStr.includes(header))) matchCount++;
+                            }
+                            
+                            if (matchCount >= 3 && validCells >= 5) {
+                                headerRowIndex = i;
+                                break;
+                            }
+                        }
+
+                        const newHeaders = jsonData[headerRowIndex] || [];
+                        const newData = jsonData.slice(headerRowIndex + 1);
+
+                        // Update in Firebase
+                        await fetch(`/api/tables/${editingTableId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                name: editingTableData.name, 
+                                headers: newHeaders, 
+                                data: newData 
+                            })
+                        });
+
+                        showToast('Table data replaced successfully!');
+                        replaceFileInput.value = '';
+                        loadStoredTables();
+                    } catch (error) {
+                        console.error('Error parsing Excel:', error);
+                        alert('Error reading Excel file: ' + error.message);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+
+            // ==================== DELETE TABLE ====================
+            window.openDeleteConfirm = (tableId, tableName) => {
+                deletingTableId = tableId;
+                confirmDeleteText.textContent = `Are you sure you want to delete "${tableName}"? This action cannot be undone.`;
+                confirmDeleteModal.classList.add('show');
+            };
+
+            cancelDeleteBtn.addEventListener('click', () => confirmDeleteModal.classList.remove('show'));
+
+            confirmDeleteBtn.addEventListener('click', async () => {
+                if (!deletingTableId) return;
+                
+                try {
+                    await fetch(`/api/tables/${deletingTableId}`, { method: 'DELETE' });
+                    confirmDeleteModal.classList.remove('show');
+                    showToast('Table deleted successfully!');
+                    loadStoredTables();
+                } catch (error) {
+                    console.error('Error deleting table:', error);
+                    alert('Error deleting table: ' + error.message);
+                }
+            });
+
+            // ==================== NOTIFY SETTINGS ====================
+            let currentNotifyTableId = null;
+
+            window.openNotifySettings = (tableId) => {
+                currentNotifyTableId = tableId;
+                const table = storedTables.find(t => t.id === tableId);
+                if (!table) return;
+
+                document.getElementById('notifyModalTitle').textContent = `Notify - ${table.name}`;
+
+                // Load saved settings or use defaults
+                const settings = table.notifySettings || {};
+                document.getElementById('beforeDays').value = settings.beforeDays || 7;
+                document.getElementById('beforeExpiryMsg').value = settings.beforeExpiryMsg || 'Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!';
+                document.getElementById('expiredMsg').value = settings.expiredMsg || 'Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!';
+
+                notifyModal.classList.add('show');
+            };
+
+            notifyModalCloseBtn.addEventListener('click', () => notifyModal.classList.remove('show'));
+
+            // Save notification settings
+            document.getElementById('notifySaveSettingsBtn').addEventListener('click', async () => {
+                if (!currentNotifyTableId) return;
+
+                const settings = {
+                    beforeDays: parseInt(document.getElementById('beforeDays').value) || 7,
+                    beforeExpiryMsg: document.getElementById('beforeExpiryMsg').value,
+                    expiredMsg: document.getElementById('expiredMsg').value
+                };
+
+                try {
+                    // Find and update the table's notifySettings
+                    const tableIndex = storedTables.findIndex(t => t.id === currentNotifyTableId);
+                    if (tableIndex !== -1) {
+                        storedTables[tableIndex].notifySettings = settings;
+                        await fetch(`/api/tables/${currentNotifyTableId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: storedTables[tableIndex].name,
+                                headers: storedTables[tableIndex].headers,
+                                data: storedTables[tableIndex].data,
+                                notifySettings: settings
+                            })
+                        });
+                        showToast('Notification settings saved!');
+                    }
+                } catch (error) {
+                    console.error('Error saving settings:', error);
+                    alert('Error saving settings: ' + error.message);
+                }
+            });
+
+            // Start Notifying button
+            notifySendBtn.addEventListener('click', async () => {
+                if (!currentNotifyTableId) return;
+
+                const table = storedTables.find(t => t.id === currentNotifyTableId);
+                if (!table || !table.data || table.data.length === 0) {
+                    alert('No data found in this table.');
+                    return;
+                }
+
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table);
+            });
+
+            allDoneCloseBtn.addEventListener('click', () => {
+                progressModal.classList.remove('show');
+                progressState.style.display = 'block';
+                allDoneState.classList.remove('show');
+            });
+
+            // ==================== NOTIFY PROCESS ====================
+            async function startNotifyProcess(table) {
+                const settings = table.notifySettings || {};
+                const beforeDays = settings.beforeDays || 7;
+                const beforeExpiryMsg = settings.beforeExpiryMsg || 'Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!';
+                const expiredMsg = settings.expiredMsg || 'Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!';
+
+                // Find columns
+                const headers = table.headers;
+                const data = table.data;
+
+                const findCol = (names) => {
+                    for (const name of names) {
+                        const idx = headers.findIndex(h => String(h).toLowerCase().trim().includes(name.toLowerCase()));
+                        if (idx !== -1) return idx;
+                    }
+                    return -1;
+                };
+
+                const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number']);
+                const nameCol = findCol(['customer name', 'name', 'customer', 'user']);
+                const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire']);
+                const remainingDaysCol = findCol(['remaining days', 'remaining', 'days left']);
+                const planCol = findCol(['plan']);
+
+                if (phoneCol === -1) {
+                    alert('Could not find Phone/Mobile column in the table.');
+                    return;
+                }
+                if (expiryCol === -1 && remainingDaysCol === -1) {
+                    alert('Could not find Expiry Date or Remaining Days column.');
+                    return;
+                }
+
+                console.log('[Notify] Columns:', { phoneCol, nameCol, expiryCol, remainingDaysCol, planCol });
+
+                // Categorize users
+                const today = new Date();
+                const usersToNotify = [];
+
+                for (const row of data) {
+                    const phone = row[phoneCol];
+                    if (!phone) continue;
+
+                    const name = nameCol !== -1 ? (row[nameCol] || 'Customer') : 'Customer';
+                    const plan = planCol !== -1 ? (row[planCol] || '') : '';
+
+                    let remainingDays = null;
+                    let expiryDate = null;
+
+                    // Get remaining days
+                    if (remainingDaysCol !== -1 && row[remainingDaysCol] !== undefined && row[remainingDaysCol] !== '') {
+                        const parsed = parseInt(String(row[remainingDaysCol]));
+                        if (!isNaN(parsed)) remainingDays = parsed;
+                    }
+
+                    // Get expiry date and calculate remaining days
+                    if (remainingDays === null && expiryCol !== -1 && row[expiryCol]) {
+                        const expiryVal = row[expiryCol];
+                        if (expiryVal instanceof Date) {
+                            expiryDate = expiryVal;
+                        } else {
+                            expiryDate = new Date(expiryVal);
+                            if (isNaN(expiryDate.getTime())) {
+                                const parts = String(expiryVal).split(/[\/\-\.]/);
+                                if (parts.length === 3) expiryDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                            }
+                        }
+                        if (expiryDate && !isNaN(expiryDate.getTime())) {
+                            const diffTime = expiryDate.getTime() - today.getTime();
+                            remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        }
+                    }
+
+                    if (remainingDays === null) continue;
+
+                    // Categorize
+                    if (remainingDays < 0) {
+                        // Expired
+                        usersToNotify.push({ phone: String(phone), name, plan, days: Math.abs(remainingDays), type: 'expired' });
+                    } else if (remainingDays <= beforeDays) {
+                        // Before expiry
+                        usersToNotify.push({ phone: String(phone), name, plan, days: remainingDays, type: 'before' });
+                    }
+                }
+
+                if (usersToNotify.length === 0) {
+                    alert('No users need notification.\n\nBefore Expiry: ' + beforeDays + ' days\nAll users either have more time remaining or are expired beyond notification range.');
+                    return;
+                }
+
+                console.log('[Notify] Users to notify:', usersToNotify.length);
+
+                // Show progress modal
+                progressState.style.display = 'flex';
+                progressState.style.opacity = '1';
+                document.getElementById('progressStatusTextContainer').style.display = 'block';
+                allDoneState.classList.remove('show');
+                progressModal.classList.add('show');
+                circularProgress.classList.add('pulsing');
+                const smsCircularProgress = document.getElementById('smsCircularProgress');
+                const smsProgressPercentText = document.getElementById('smsProgressPercentText');
+                if(smsCircularProgress) smsCircularProgress.classList.add('pulsing');
+                
+                circularProgress.style.setProperty('--progress', '0deg');
+                progressPercentText.textContent = '0%';
+                if(smsCircularProgress) smsCircularProgress.style.setProperty('--progress', '0deg');
+                if(smsProgressPercentText) smsProgressPercentText.textContent = '0%';
+
+                let sentCount = 0;
+                let smsSentCount = 0;
+                let failedCount = 0;
+                const total = usersToNotify.length;
+
+                const animateProgress = (targetPercent, duration) => {
+                    return new Promise((resolve) => {
+                        const startPercent = parseInt(progressPercentText.textContent) || 0;
+                        const startTime = Date.now();
+                        const animate = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            const currentPercent = startPercent + (targetPercent - startPercent) * progress;
+                            
+                            circularProgress.style.setProperty('--progress', (currentPercent / 100 * 360) + 'deg');
+                            progressPercentText.textContent = Math.round(currentPercent) + '%';
+                            
+                            if (smsCircularProgress) {
+                                smsCircularProgress.style.background = `conic-gradient(#6366f1 ${currentPercent / 100 * 360}deg, transparent 0deg)`;
+                            }
+                            if (smsProgressPercentText) {
+                                smsProgressPercentText.textContent = Math.round(currentPercent) + '%';
+                            }
+                            
+                            if (progress < 1) requestAnimationFrame(animate);
+                            else resolve();
+                        };
+                        requestAnimationFrame(animate);
+                    });
+                };
+
+                for (let i = 0; i < usersToNotify.length; i++) {
+                    const user = usersToNotify[i];
+                    await animateProgress(((i + 1) / total) * 100, 800);
+                    progressCount.textContent = `${i + 1}/${total}`;
+
+                    // Build message
+                    let message = user.type === 'expired' ? expiredMsg : beforeExpiryMsg;
+                    message = message.replace(/{name}/g, user.name)
+                                    .replace(/{days}/g, user.days)
+                                    .replace(/{plan}/g, user.plan);
+
+                    // Send WhatsApp message
+                    try {
+                        const response = await fetch('/api/whatsapp/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ phoneNumber: user.phone, message })
+                        });
+                        const result = await response.json();
+                        if (result.success) sentCount++;
+                        else failedCount++;
+                    } catch (error) {
+                        console.error('Error sending WA message:', error);
+                        failedCount++;
+                    }
+                    
+                    // Send SMS
+                    try {
+                        let customApi = localStorage.getItem('smsApiUrl');
+                        if (!customApi) {
+                            customApi = `https://api.smsmobileapi.com/sendsms/?recipients=PHONE_NUMBER&message=HELLOWORLD&apikey=YOUR_API_KEY`;
+                        }
+                        const smsApiUrl = customApi
+                            .replace('PHONE_NUMBER', encodeURIComponent(String(user.phone)))
+                            .replace('HELLOWORLD', encodeURIComponent(message));
+                        
+                        const resSms = await fetch(smsApiUrl, { mode: 'no-cors' });
+                        smsSentCount++;
+                    } catch(e) {
+                        console.error('SMS Error:', e);
+                    }
+
+                    // Delay between messages
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+
+                // Show done state
+                circularProgress.classList.remove('pulsing');
+                if (smsCircularProgress) smsCircularProgress.classList.remove('pulsing');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                progressState.style.opacity = '0';
+                progressState.style.transition = 'opacity 0.3s ease';
+                await new Promise(resolve => setTimeout(resolve, 300));
+                progressState.style.display = 'none';
+
+                allDoneState.style.opacity = '0';
+                allDoneState.style.transform = 'scale(0.8)';
+                allDoneState.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                allDoneState.classList.add('show');
+                await new Promise(resolve => setTimeout(resolve, 50));
+                allDoneState.style.opacity = '1';
+                allDoneState.style.transform = 'scale(1)';
+
+                totalSent.textContent = sentCount;
+                totalFailed.textContent = failedCount;
+                lucide.createIcons();
+            }
+
+            // ==================== EXCEL UPLOAD ====================
+            const uploadBox = document.getElementById('uploadBox');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const errorState = document.getElementById('errorState');
+            const errorMsg = document.getElementById('errorMsg');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const uploadProgressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            }
+
+            function updateUploadProgress(percent, status) {
+                progressFill.style.width = percent + '%';
+                uploadProgressPercent.textContent = percent + '%';
+                progressStatus.textContent = status;
+            }
+
+            function showError(message) {
+                errorMsg.textContent = message;
+                errorState.classList.add('show');
+                progressContainer.classList.remove('show');
+            }
+
+            function hideError() { errorState.classList.remove('show'); }
+
+            uploadBox.addEventListener('click', () => fileInput.click());
+            uploadBox.addEventListener('dragover', (e) => { e.preventDefault(); uploadBox.classList.add('dragover'); });
+            uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('dragover'));
+            uploadBox.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadBox.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) handleFile(file);
+            });
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) handleFile(file);
+            });
+
+            function handleFile(file) {
+                hideError();
+                const validExtensions = ['.xlsx', '.xls', '.csv'];
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                if (!validExtensions.includes(ext)) {
+                    showError('Please choose a valid Excel file (.xlsx, .xls, or .csv)');
+                    return;
+                }
+                fileName.textContent = file.name;
+                fileSize.textContent = formatSize(file.size);
+                fileInfo.classList.add('show');
+                uploadBox.classList.add('has-file');
+                progressContainer.classList.add('show');
+                simulateProgress(() => parseExcel(file));
+            }
+
+            function simulateProgress(callback) {
+                const steps = [
+                    { percent: 20, status: 'Reading file...' },
+                    { percent: 45, status: 'Parsing workbook...' },
+                    { percent: 70, status: 'Extracting sheets...' },
+                    { percent: 90, status: 'Processing data...' },
+                    { percent: 100, status: 'Complete!' }
+                ];
+                let stepIndex = 0;
+                const interval = setInterval(() => {
+                    if (stepIndex < steps.length) {
+                        updateUploadProgress(steps[stepIndex].percent, steps[stepIndex].status);
+                        stepIndex++;
+                    } else {
+                        clearInterval(interval);
+                        setTimeout(callback, 300);
+                    }
+                }, 400);
+            }
+
+            function parseExcel(file) {
+                if (typeof XLSX === 'undefined') {
+                    showError('Excel library not loaded. Please refresh the page and try again.');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        try {
+                            workbookData = XLSX.read(data, { type: 'array', cellDates: true });
+                        } catch (e) {
+                            workbookData = XLSX.read(event.target.result, { type: 'binary', cellDates: true });
+                        }
+                        if (!workbookData || !workbookData.SheetNames || workbookData.SheetNames.length === 0) {
+                            showError('No sheets found in the file. Please check the file format.');
+                            return;
+                        }
+                        editingTableId = null;
+                        editingTableData = null;
+                        document.getElementById('modalTitle').textContent = 'Extracted Data';
+                        createModalSheetTabs();
+                        displayModalSheet(0);
+                        dataModal.classList.add('show');
+                        document.body.style.overflow = 'hidden';
+                        lucide.createIcons();
+                    } catch (error) {
+                        console.error('Error parsing Excel:', error);
+                        showError('Error reading Excel file: ' + error.message);
+                    }
+                };
+                reader.onerror = () => showError('Error reading the file. Please try again.');
+                reader.readAsArrayBuffer(file);
+            }
+
+            function createModalSheetTabs() {
+                modalSheetTabs.innerHTML = '';
+                workbookData.SheetNames.forEach((name, index) => {
+                    const tab = document.createElement('button');
+                    tab.className = 'modal-sheet-tab' + (index === 0 ? ' active' : '');
+                    tab.textContent = name;
+                    tab.addEventListener('click', () => {
+                        currentSheet = index;
+                        document.querySelectorAll('.modal-sheet-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        displayModalSheet(index);
+                    });
+                    modalSheetTabs.appendChild(tab);
+                });
+            }
+
+            function displayModalSheet(index) {
+                const sheetName = workbookData.SheetNames[index];
+                const worksheet = workbookData.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+                if (jsonData.length === 0) {
+                    modalTableHead.innerHTML = '';
+                    modalTableBody.innerHTML = '';
+                    modalDataCount.textContent = '0 rows';
+                    modalEmptyState.style.display = 'block';
+                    extractedData = [];
+                    headers = [];
+                    return;
+                }
+
+                modalEmptyState.style.display = 'none';
+
+                const knownHeaders = ['name', 'phone', 'email', 'customer', 'user', 'address', 'plan', 'expiry', 'mobile', 'whatsapp', 'contact', 'userid', 'mrp', 'area', 'partner', 'volume'];
+                let headerRowIndex = 0;
+                
+                for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
+                    const row = jsonData[i];
+                    if (!row || row.length === 0) continue;
+                    let matchCount = 0;
+                    let validCells = 0;
+                    
+                    for (const cell of row) {
+                        const cellStr = String(cell).toLowerCase().trim();
+                        if (cellStr === '' || cellStr.length > 30) continue;
+                        validCells++;
+                        if (knownHeaders.some(header => cellStr.includes(header))) matchCount++;
+                    }
+                    
+                    if (matchCount >= 3 && validCells >= 5) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+
+                headers = jsonData[headerRowIndex] || [];
+                const rows = jsonData.slice(headerRowIndex + 1);
+                extractedData = rows;
+
+                if (headers.length === 0) {
+                    modalTableHead.innerHTML = '';
+                    modalTableBody.innerHTML = '';
+                    modalDataCount.textContent = '0 rows';
+                    modalEmptyState.style.display = 'block';
+                    return;
+                }
+
+                modalEmptyState.style.display = 'none';
+
+                modalTableHead.innerHTML = '<tr>' + headers.map(h => 
+                    `<th>${h !== null && h !== undefined ? String(h) : ''}</th>`
+                ).join('') + '</tr>';
+
+                modalTableBody.innerHTML = rows.map(row => 
+                    '<tr>' + headers.map((_, i) => 
+                        `<td>${row[i] !== undefined && row[i] !== null ? String(row[i]) : ''}</td>`
+                    ).join('') + '</tr>'
+                ).join('');
+
+                modalDataCount.textContent = rows.length + ' rows';
+            }
+
+            // ==================== NOTIFICATION PROCESS ====================
+            function findColumnIndex(name) {
+                const lowerName = name.toLowerCase().trim();
+                let index = headers.findIndex(h => String(h).toLowerCase().trim() === lowerName);
+                if (index !== -1) return index;
+                index = headers.findIndex(h => String(h).toLowerCase().trim().includes(lowerName));
+                if (index !== -1) return index;
+                index = headers.findIndex(h => String(h).toLowerCase().trim().startsWith(lowerName));
+                return index;
+            }
+
+            function findPhoneColumn() {
+                const phoneVariations = ['whatsapp no', 'whatsapp number', 'whatsapp', 'phone no', 'phone number', 'phone', 'mobile no', 'mobile number', 'mobile', 'contact no', 'contact number', 'contact', 'tel', 'telephone', 'cell', 'number', 'no', 'pho'];
+                for (const variation of phoneVariations) {
+                    const index = headers.findIndex(h => String(h).toLowerCase().trim() === variation);
+                    if (index !== -1) return index;
+                }
+                for (const variation of phoneVariations) {
+                    const index = findColumnIndex(variation);
+                    if (index !== -1) return index;
+                }
+                return -1;
+            }
+
+            async function startNotificationProcess() {
+                const phoneCol = findPhoneColumn();
+                const expiryCol = findColumnIndex('expir') !== -1 ? findColumnIndex('expir') : 
+                                  findColumnIndex('valid') !== -1 ? findColumnIndex('valid') :
+                                  findColumnIndex('expire') !== -1 ? findColumnIndex('expire') :
+                                  findColumnIndex('expiry') !== -1 ? findColumnIndex('expiry') :
+                                  findColumnIndex('date') !== -1 ? findColumnIndex('date') :
+                                  findColumnIndex('due') !== -1 ? findColumnIndex('due') : -1;
+                const remainingDaysCol = findColumnIndex('remaining days') !== -1 ? findColumnIndex('remaining days') :
+                                         findColumnIndex('remaining') !== -1 ? findColumnIndex('remaining') : 
+                                         findColumnIndex('days') !== -1 ? findColumnIndex('days') : -1;
+                const nameCol = findColumnIndex('name') !== -1 ? findColumnIndex('name') : 
+                                findColumnIndex('customer') !== -1 ? findColumnIndex('customer') :
+                                findColumnIndex('user') !== -1 ? findColumnIndex('user') :
+                                findColumnIndex('client') !== -1 ? findColumnIndex('client') : -1;
+
+                if (phoneCol === -1) {
+                    alert('Could not find phone/whatsapp/mobile column.');
+                    return;
+                }
+                if (expiryCol === -1 && remainingDaysCol === -1) {
+                    alert('Could not find expiry/validity/date or remaining days column.');
+                    return;
+                }
+
+                const sendBefore = beforeCheckbox.checked;
+                const sendAfter = afterCheckbox.checked;
+                const beforeDaysValue = parseInt(beforeDays.value);
+                const afterDaysValue = parseInt(afterDays.value);
+                const today = new Date();
+                const usersToNotify = [];
+                
+                for (const row of extractedData) {
+                    const phone = row[phoneCol];
+                    const expiry = expiryCol !== -1 ? row[expiryCol] : null;
+                    const remainingDays = remainingDaysCol !== -1 ? row[remainingDaysCol] : null;
+                    const name = nameCol !== -1 ? row[nameCol] : 'Customer';
+                    if (!phone) continue;
+
+                    let diffDays = null;
+                    let expiryDate = null;
+
+                    if (remainingDays !== null && remainingDays !== undefined && remainingDays !== '') {
+                        const parsedDays = parseInt(String(remainingDays));
+                        if (!isNaN(parsedDays)) {
+                            diffDays = parsedDays;
+                            expiryDate = new Date(today.getTime() + diffDays * 24 * 60 * 60 * 1000);
+                        }
+                    }
+
+                    if (diffDays === null && expiry !== null && expiry !== undefined && expiry !== '') {
+                        if (expiry instanceof Date) {
+                            expiryDate = expiry;
+                        } else {
+                            expiryDate = new Date(expiry);
+                            if (isNaN(expiryDate.getTime())) {
+                                const parts = String(expiry).split(/[\/\-\.]/);
+                                if (parts.length === 3) expiryDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                            }
+                        }
+                        if (expiryDate && !isNaN(expiryDate.getTime())) {
+                            diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        }
+                    }
+
+                    if (diffDays === null) continue;
+                    if (sendBefore && diffDays > 0 && diffDays <= beforeDaysValue) {
+                        usersToNotify.push({ phone: String(phone), name: String(name), expiryDate, diffDays, type: 'before' });
+                    }
+                    if (sendAfter && diffDays < 0 && Math.abs(diffDays) <= afterDaysValue) {
+                        usersToNotify.push({ phone: String(phone), name: String(name), expiryDate, diffDays: Math.abs(diffDays), type: 'after' });
+                    }
+                }
+
+                if (usersToNotify.length === 0) {
+                    alert('No users found matching the notification criteria.');
+                    return;
+                }
+
+                progressState.style.display = 'flex';
+                progressState.style.opacity = '1';
+                document.getElementById('progressStatusTextContainer').style.display = 'block';
+                allDoneState.classList.remove('show');
+                progressModal.classList.add('show');
+                circularProgress.classList.add('pulsing');
+                const smsCircularProgress2 = document.getElementById('smsCircularProgress');
+                const smsProgressPercentText2 = document.getElementById('smsProgressPercentText');
+                if(smsCircularProgress2) smsCircularProgress2.classList.add('pulsing');
+                
+                circularProgress.style.setProperty('--progress', '0deg');
+                progressPercentText.textContent = '0%';
+                if(smsCircularProgress2) smsCircularProgress2.style.setProperty('--progress', '0deg');
+                if(smsProgressPercentText2) smsProgressPercentText2.textContent = '0%';
+
+                let sentCount = 0;
+                let smsSentCount = 0;
+                let failedCount = 0;
+                const total = usersToNotify.length;
+
+                const animateProgress = (targetPercent, duration) => {
+                    return new Promise((resolve) => {
+                        const startPercent = parseInt(progressPercentText.textContent) || 0;
+                        const startTime = Date.now();
+                        const animate = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(elapsed / duration, 1);
+                            const currentPercent = startPercent + (targetPercent - startPercent) * progress;
+                            circularProgress.style.setProperty('--progress', (currentPercent / 100 * 360) + 'deg');
+                            progressPercentText.textContent = Math.round(currentPercent) + '%';
+                            
+                            if (smsCircularProgress2) {
+                                smsCircularProgress2.style.background = `conic-gradient(#6366f1 ${currentPercent / 100 * 360}deg, transparent 0deg)`;
+                            }
+                            if (smsProgressPercentText2) {
+                                smsProgressPercentText2.textContent = Math.round(currentPercent) + '%';
+                            }
+                            
+                            if (progress < 1) requestAnimationFrame(animate);
+                            else resolve();
+                        };
+                        requestAnimationFrame(animate);
+                    });
+                };
+
+                for (let i = 0; i < usersToNotify.length; i++) {
+                    const user = usersToNotify[i];
+                    await animateProgress(((i + 1) / total) * 100, 800);
+                    progressCount.textContent = `${i + 1}/${total}`;
+
+                    const expiryStr = user.expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let message;
+                    if (user.type === 'before') {
+                        message = `📶 WiFi Recharge Reminder\n\nHello ${user.name} 👋,\n\nAapke WiFi ka recharge **jaldi expire hone wala hai**.\n📅 Expiry Date: ${expiryStr}\n⏰ Days Remaining: ${user.diffDays} days\n\n⚡ Internet service bina interruption ke chalti rahe, iske liye kripya samay par recharge kar dein.\n\nAgar aap recharge kar chuke hain, to is message ko ignore karein.\n\nDhanyavaad! 🙏`;
+                    } else {
+                        message = `📶 WiFi Recharge Expired\n\nHello ${user.name} 👋,\n\nAapke WiFi ka recharge **expire ho chuka hai**.\n⏰ Days Expired: ${user.diffDays} days ago\n\n⚡ Internet service bina interruption ke chalti rahe, iske liye kripya samay par recharge kar dein.\n\nAgar aap recharge kar chuke hain, to is message ko ignore karein.\n\nDhanyavaad! 🙏`;
+                    }
+
+                    try {
+                        const response = await fetch('/api/whatsapp/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ phoneNumber: user.phone, message: message })
+                        });
+                        const result = await response.json();
+                        if (result.success) sentCount++;
+                        else failedCount++;
+                    } catch (error) {
+                        console.error('Error sending WA message:', error);
+                        failedCount++;
+                    }
+                    
+                    // Send SMS
+                    try {
+                        let customApi = localStorage.getItem('smsApiUrl');
+                        if (!customApi) {
+                            customApi = `https://api.smsmobileapi.com/sendsms/?recipients=PHONE_NUMBER&message=HELLOWORLD&apikey=YOUR_API_KEY`;
+                        }
+                        const smsApiUrl = customApi
+                            .replace('PHONE_NUMBER', encodeURIComponent(String(user.phone)))
+                            .replace('HELLOWORLD', encodeURIComponent(message));
+                        
+                        const resSms = await fetch(smsApiUrl, { mode: 'no-cors' });
+                        smsSentCount++;
+                    } catch(e) {
+                        console.error('SMS Error:', e);
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                }
+
+                circularProgress.classList.remove('pulsing');
+                if (smsCircularProgress2) smsCircularProgress2.classList.remove('pulsing');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                progressState.style.opacity = '0';
+                progressState.style.transition = 'opacity 0.3s ease';
+                await new Promise(resolve => setTimeout(resolve, 300));
+                progressState.style.display = 'none';
+                
+                allDoneState.style.opacity = '0';
+                allDoneState.style.transform = 'scale(0.8)';
+                allDoneState.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                allDoneState.classList.add('show');
+                await new Promise(resolve => setTimeout(resolve, 50));
+                allDoneState.style.opacity = '1';
+                allDoneState.style.transform = 'scale(1)';
+                
+                totalSent.textContent = sentCount;
+                totalFailed.textContent = failedCount;
+                lucide.createIcons();
+            }
+
+            // ==================== INIT ====================
+            loadStoredTables();
+        });
+    </script>
+<script src="js/voice-assistant.js"></script>
+</body>
+</html>

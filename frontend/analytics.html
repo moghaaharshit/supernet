@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Super Net</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for beautiful graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="logo">
+            <i data-lucide="message-square"></i> Super Net
+        </div>
+        <button class="hamburger" id="hamburgerBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel" id="sidebar">
+            <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="message-square" style="color: var(--primary);"></i> Super Net
+            </div>
+            <nav style="flex: 1;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="qr.html" class="nav-item">
+                    <i data-lucide="smartphone"></i> WhatsApp
+                </a>
+                <a href="send.html" class="nav-item">
+                    <i data-lucide="send"></i> Send Message
+                </a>
+                <a href="excel.html" class="nav-item">
+                    <i data-lucide="file-spreadsheet"></i> Insert Excel
+                </a>
+                <a href="rules.html" class="nav-item">
+                    <i data-lucide="list"></i> Rules
+                </a>
+                <a href="analytics.html" class="nav-item active">
+                    <i data-lucide="bar-chart-2"></i> Analytics
+                </a>
+                <a href="settings.html" class="nav-item">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1>Analytics</h1>
+                    <p>Track your super net performance and message volume.</p>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <div class="stat-card glass-panel">
+                    <h3 style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 1rem;">Total Messages Processed</h3>
+                    <div class="stat-value" id="totalMsg">0</div>
+                </div>
+                <div class="stat-card glass-panel">
+                    <h3 style="color: var(--text-secondary); font-size: 1rem; margin-bottom: 1rem;">Total Replies Sent</h3>
+                    <div class="stat-value" id="totalReplies">0</div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="padding: 2rem; margin-bottom: 2rem;">
+                <h3 style="margin-bottom: 1.5rem;">Activity Overview (Placeholder Data)</h3>
+                <canvas id="activityChart" height="100"></canvas>
+            </div>
+            
+        </main>
+    </div>
+
+    <script type="module">
+        lucide.createIcons();
+
+        // Mobile Menu Toggle
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            hamburgerBtn.classList.toggle('active');
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        hamburgerBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        // Close sidebar when clicking a nav item on mobile
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+
+        async function initAnalytics() {
+            try {
+                const res = await fetch('/api/analytics');
+                const data = await res.json();
+                
+                document.getElementById('totalMsg').textContent = (data.totalReceived || 0) + (data.totalSent || 0);
+                document.getElementById('totalReplies').textContent = data.totalSent || 0;
+
+                // Render Chart
+                const ctx = document.getElementById('activityChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'Messages Sent',
+                            data: [12, 19, 3, 5, 2, 3, 10], // Sample data
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            x: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        initAnalytics();
+    </script>
+<script src="js/voice-assistant.js"></script>
+</body>
+</html>

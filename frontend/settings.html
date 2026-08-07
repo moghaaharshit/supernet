@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Super Net</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="logo">
+            <i data-lucide="message-square"></i> Super Net
+        </div>
+        <button class="hamburger" id="hamburgerBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel" id="sidebar">
+            <div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 2rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="message-square" style="color: var(--primary);"></i> Super Net
+            </div>
+            <nav style="flex: 1;">
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="qr.html" class="nav-item">
+                    <i data-lucide="smartphone"></i> WhatsApp
+                </a>
+                <a href="send.html" class="nav-item">
+                    <i data-lucide="send"></i> Send Message
+                </a>
+                <a href="excel.html" class="nav-item">
+                    <i data-lucide="file-spreadsheet"></i> Insert Excel
+                </a>
+                <a href="rules.html" class="nav-item">
+                    <i data-lucide="list"></i> Rules
+                </a>
+                <a href="analytics.html" class="nav-item">
+                    <i data-lucide="bar-chart-2"></i> Analytics
+                </a>
+                <a href="settings.html" class="nav-item active">
+                    <i data-lucide="settings"></i> Settings
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header" style="margin-bottom: 2rem;">
+                <div>
+                    <h1>Settings</h1>
+                    <p>Configure your account and application preferences.</p>
+                </div>
+            </header>
+
+            <div class="glass-panel" style="padding: 2rem; max-width: 600px;">
+                <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 1rem;">SMS API Settings</h3>
+                
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label class="form-label" style="color: var(--text-primary); margin-bottom: 0.5rem; display: block;">Enter SMS Send API URL</label>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                            Example: <code>https://api.smsmobileapi.com/sendsms/?recipients=PHONE_NUMBER&message=HELLOWORLD&apikey=YOUR_API_KEY</code>
+                        </p>
+                        <input type="text" id="smsApiInput" class="form-control" placeholder="Paste your API URL here" style="width: 100%;">
+                    </div>
+
+                    <button type="button" id="saveSmsApiBtn" class="btn btn-primary" style="margin-top: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="save"></i> Set SMS API
+                    </button>
+                    
+                    <div id="saveSuccessMsg" style="display: none; color: var(--success); font-weight: bold; margin-top: 1rem; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> API Saved Successfully!
+                    </div>
+                </form>
+            </div>
+            
+        </main>
+    </div>
+
+    <script type="module">
+        lucide.createIcons();
+
+        // Load existing API URL
+        const smsApiInput = document.getElementById('smsApiInput');
+        const savedApi = localStorage.getItem('smsApiUrl');
+        if (savedApi) {
+            smsApiInput.value = savedApi;
+        }
+
+        // Save API URL
+        document.getElementById('saveSmsApiBtn').addEventListener('click', function() {
+            const val = smsApiInput.value.trim();
+            if (val) {
+                localStorage.setItem('smsApiUrl', val);
+                const msg = document.getElementById('saveSuccessMsg');
+                msg.style.display = 'flex';
+                this.style.background = 'var(--success)';
+                this.innerHTML = '<i data-lucide="check"></i> Success';
+                lucide.createIcons();
+                
+                setTimeout(() => {
+                    msg.style.display = 'none';
+                    this.style.background = 'var(--primary)';
+                    this.innerHTML = '<i data-lucide="save"></i> Set SMS API';
+                    lucide.createIcons();
+                }, 3000);
+            }
+        });
+
+        // Mobile Menu Toggle
+        const hamburgerBtn = document.getElementById('hamburgerBtn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        function toggleSidebar() {
+            hamburgerBtn.classList.toggle('active');
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        }
+
+        hamburgerBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', toggleSidebar);
+
+        // Close sidebar when clicking a nav item on mobile
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
+            });
+        });
+    </script>
+<script src="js/voice-assistant.js"></script>
+</body>
+</html>
