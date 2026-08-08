@@ -786,6 +786,63 @@
         .toast-icon i { color: var(--success); width: 18px; height: 18px; }
         .toast-text { font-weight: 500; color: var(--text-primary); }
 
+        /* Notify Action Buttons */
+        .notify-actions-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        .notify-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            color: white;
+        }
+        .notify-action-btn:hover {
+            transform: translateY(-2px);
+        }
+        .notify-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .notify-action-btn.wa-btn {
+            background: linear-gradient(135deg, #25D366, #128C7E);
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }
+        .notify-action-btn.wa-btn:hover {
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+        }
+        .notify-action-btn.sms-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        .notify-action-btn.sms-btn:hover {
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+        .notify-action-btn.all-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+        .notify-action-btn.all-btn:hover {
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.5);
+        }
+        .notify-section-divider {
+            border: none;
+            border-top: 1px solid var(--surface-border);
+            margin: 1.5rem 0;
+        }
+
         /* Hidden file input for replace */
         .hidden-input { display: none; }
 
@@ -1080,6 +1137,14 @@
                 </div>
                 <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
                 <textarea id="beforeExpiryMsg" rows="3" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.9rem; resize: vertical; box-sizing: border-box;" placeholder="Enter message for users whose plan is about to expire...">Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!</textarea>
+                <div class="notify-actions-row">
+                    <button class="notify-action-btn wa-btn" id="beforeWaBtn">
+                        <i data-lucide="message-square" style="width:16px;height:16px;"></i> WhatsApp
+                    </button>
+                    <button class="notify-action-btn sms-btn" id="beforeSmsBtn">
+                        <i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS
+                    </button>
+                </div>
             </div>
 
             <div style="border-top: 1px solid var(--surface-border); padding-top: 1.5rem; margin-bottom: 1.5rem;">
@@ -1089,22 +1154,50 @@
                 </div>
                 <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
                 <textarea id="expiredMsg" rows="3" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.9rem; resize: vertical; box-sizing: border-box;" placeholder="Enter message for users whose plan has expired...">Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!</textarea>
+                <div class="notify-actions-row">
+                    <button class="notify-action-btn wa-btn" id="expiredWaBtn">
+                        <i data-lucide="message-square" style="width:16px;height:16px;"></i> WhatsApp
+                    </button>
+                    <button class="notify-action-btn sms-btn" id="expiredSmsBtn">
+                        <i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS
+                    </button>
+                </div>
             </div>
 
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(99, 102, 241, 0.2);">
                 <strong>Variables:</strong> Use <code>{name}</code> for user name, <code>{days}</code> for days, <code>{plan}</code> for plan name
             </div>
 
-            <div style="display: flex; gap: 1rem;">
+            <hr class="notify-section-divider">
+
+            <button class="notify-action-btn all-btn" id="notifyAllBtn" style="width: 100%; padding: 0.9rem; font-size: 0.95rem;">
+                <i data-lucide="send" style="width:18px;height:18px;"></i> Notify All (WhatsApp + SMS)
+            </button>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                 <button class="btn-cancel-table" id="notifySaveSettingsBtn" style="flex: 1;">
                     <i data-lucide="save" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 6px;"></i>
                     Save Settings
                 </button>
-                <button class="notify-send-btn" id="notifySendBtn" style="flex: 2; margin-top: 0;">
-                    <i data-lucide="play" style="width: 18px; height: 18px;"></i>
-                    Start Notifying
-                </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Excel Report Modal -->
+    <div class="notify-modal" id="reportModal">
+        <div class="notify-modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div class="notify-modal-header">
+                <h3><i data-lucide="file-spreadsheet" style="width: 24px; height: 24px; color: var(--success);"></i><span>Notification Report</span></h3>
+                <button class="modal-close-btn" id="reportCloseBtn" style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1);border:none;color:var(--text-primary);cursor:pointer;display:flex;align-items:center;justify-content:center;"><i data-lucide="x" style="width: 18px; height: 18px;"></i></button>
+            </div>
+            <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <p style="margin:0; color: var(--text-secondary); font-size: 0.9rem;">Users who received notifications:</p>
+                <button id="downloadExcelBtn" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; background: linear-gradient(135deg, var(--success), #059669); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: var(--transition);"><i data-lucide="download" style="width:16px;height:16px;"></i> Download Excel</button>
+            </div>
+            <div id="reportTableWrapper" style="overflow-x: auto; border: 1px solid var(--surface-border); border-radius: var(--radius-sm);">
+                <table id="reportTable" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;"><thead id="reportTableHead"></thead><tbody id="reportTableBody"></tbody></table>
+            </div>
+            <div style="margin-top: 1rem; text-align: center;"><button id="reportDoneBtn" style="padding: 0.75rem 2rem; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">Done</button></div>
         </div>
     </div>
 
@@ -1130,7 +1223,7 @@
                 </div>
             </div>
             <div class="progress-status-text" id="progressStatusTextContainer" style="margin-top: 1rem; text-align: center;">
-                Sending notifications... <span class="progress-count" id="progressCount">0/0</span>
+                Sending <span id="progressChannelLabel">notifications</span>... <span class="progress-count" id="progressCount">0/0</span>
             </div>
             <div class="all-done-container" id="allDoneState">
                 <div class="all-done-checkmark">
@@ -1206,7 +1299,6 @@
             // Notify Modal
             const notifyModal = document.getElementById('notifyModal');
             const notifyModalCloseBtn = document.getElementById('notifyModalCloseBtn');
-            const notifySendBtn = document.getElementById('notifySendBtn');
             const beforeOption = document.getElementById('beforeOption');
             const afterOption = document.getElementById('afterOption');
             const beforeCheckbox = document.getElementById('beforeCheckbox');
@@ -1620,32 +1712,205 @@
                 }
             });
 
-            // Start Notifying button
-            notifySendBtn.addEventListener('click', async () => {
-                if (!currentNotifyTableId) return;
-
+            // Helper: Get table for notify
+            async function getTableForNotify() {
+                if (!currentNotifyTableId) return null;
                 const table = storedTables.find(t => t.id === currentNotifyTableId);
                 if (!table || !table.data || table.data.length === 0) {
-                    alert('No data found in this table.');
-                    return;
+                    console.log('[Notify] No data in table');
+                    return null;
                 }
+                return table;
+            }
 
+            // Before Expiry - WhatsApp button
+            document.getElementById('beforeWaBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
                 notifyModal.classList.remove('show');
-                await startNotifyProcess(table);
+                await startNotifyProcess(table, 'before', 'whatsapp');
+            });
+
+            // Before Expiry - SMS button
+            document.getElementById('beforeSmsBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'before', 'sms');
+            });
+
+            // Expired - WhatsApp button
+            document.getElementById('expiredWaBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'expired', 'whatsapp');
+            });
+
+            // Expired - SMS button
+            document.getElementById('expiredSmsBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'expired', 'sms');
+            });
+
+            // Notify All button
+            document.getElementById('notifyAllBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'all', 'all');
             });
 
             allDoneCloseBtn.addEventListener('click', () => {
                 progressModal.classList.remove('show');
                 progressState.style.display = 'block';
                 allDoneState.classList.remove('show');
+                // Reset both loaders visibility
+                const smsCircProg2 = document.getElementById('smsCircularProgress');
+                if (smsCircProg2 && smsCircProg2.parentElement) smsCircProg2.parentElement.style.display = '';
+                const waCircProg2 = document.getElementById('circularProgress');
+                if (waCircProg2 && waCircProg2.parentElement) waCircProg2.parentElement.style.display = '';
             });
 
+            // ==================== ROBUST DATE PARSER ====================
+            function parseExpiryDate(val) {
+                if (val === null || val === undefined || val === '') return null;
+
+                // If already a Date object
+                if (val instanceof Date && !isNaN(val.getTime())) return val;
+
+                // Excel serial number (e.g. 45678)
+                if (typeof val === 'number' && val > 30000 && val < 60000) {
+                    const excelEpoch = new Date(1899, 11, 30);
+                    const d = new Date(excelEpoch.getTime() + val * 86400000);
+                    if (!isNaN(d.getTime())) return d;
+                }
+
+                const str = String(val).trim();
+                if (!str) return null;
+
+                const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+                const monthNames = Object.keys(monthMap);
+
+                // Helper to create date in LOCAL timezone (avoids UTC offset issues)
+                function makeLocalDate(y, m, d) {
+                    const date = new Date(y, m, d);
+                    if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) return date;
+                    return null;
+                }
+
+                // 1. Handle text month formats FIRST: "Wed Aug 5 2026", "Aug 5, 2026", "5 Aug 2026"
+                const lowerStr = str.toLowerCase();
+                const foundMonthIdx = monthNames.findIndex(m => lowerStr.includes(m));
+                if (foundMonthIdx !== -1) {
+                    // Extract parts: could be "Aug 5 2026" or "5 Aug 2026"
+                    const wordParts = str.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/);
+                    let month = -1, day = -1, year = -1;
+                    for (const wp of wordParts) {
+                        const wl = wp.toLowerCase();
+                        if (monthMap[wl] !== undefined) { month = monthMap[wl]; continue; }
+                        const num = parseInt(wp);
+                        if (isNaN(num)) continue;
+                        if (num > 1900 && num < 2100) { year = num; continue; }
+                        if (num >= 1 && num <= 31 && day === -1) { day = num; continue; }
+                        if (num >= 1 && num <= 12 && month === -1) { month = num - 1; continue; }
+                    }
+                    if (month !== -1 && day !== -1 && year !== -1) {
+                        const d = makeLocalDate(year, month, day);
+                        if (d) return d;
+                    }
+                }
+
+                // 2. Handle formats with time: "2026-08-06 23:59:59" → split and parse date part
+                const dateOnly = str.split(/[\sT]+/)[0];
+                if (dateOnly !== str) {
+                    const d = parseExpiryDate(dateOnly);
+                    if (d) return d;
+                }
+
+                // 3. Split by common separators
+                const parts = dateOnly.split(/[\/\-\.]/);
+
+                if (parts.length >= 3) {
+                    let p0 = parseInt(parts[0]);
+                    let p1 = parseInt(parts[1]);
+                    let p2 = parseInt(parts[2]);
+
+                    if (isNaN(p0) || isNaN(p1) || isNaN(p2)) return null;
+
+                    // Handle 2-digit year
+                    if (p2 < 100) p2 += 2000;
+
+                    // Case 1: YYYY-MM-DD or YYYY/MM/DD (year first)
+                    if (p0 > 1900 && p0 < 2100 && p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+                        const d = makeLocalDate(p0, p1 - 1, p2);
+                        if (d) return d;
+                    }
+
+                    // Case 2: DD-MM-YYYY or DD/MM/YYYY (day first, most common in India)
+                    if (p0 >= 1 && p0 <= 31 && p1 >= 1 && p1 <= 12 && p2 > 1900) {
+                        const d = makeLocalDate(p2, p1 - 1, p0);
+                        if (d) return d;
+                    }
+
+                    // Case 3: MM-DD-YYYY or MM/DD/YYYY (month first, US format)
+                    if (p0 >= 1 && p0 <= 12 && p1 >= 1 && p1 <= 31 && p2 > 1900) {
+                        const d = makeLocalDate(p2, p0 - 1, p1);
+                        if (d) return d;
+                    }
+
+                    // Case 4: DD-MM-YY
+                    if (p0 >= 1 && p0 <= 31 && p1 >= 1 && p1 <= 12 && p2 >= 2000 && p2 <= 2099) {
+                        const d = makeLocalDate(p2, p1 - 1, p0);
+                        if (d) return d;
+                    }
+                }
+
+                // 4. Fallback: try standard JS Date parsing (for YYYY-MM-DD format)
+                const d = new Date(dateOnly);
+                if (!isNaN(d.getTime()) && dateOnly.length >= 8) {
+                    // Return in local timezone
+                    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                }
+
+                console.warn('[DateParser] Could not parse date:', val);
+                return null;
+            }
+
             // ==================== NOTIFY PROCESS ====================
-            async function startNotifyProcess(table) {
+            async function startNotifyProcess(table, userType = 'all', channel = 'all') {
                 const settings = table.notifySettings || {};
                 const beforeDays = settings.beforeDays || 7;
                 const beforeExpiryMsg = settings.beforeExpiryMsg || 'Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!';
                 const expiredMsg = settings.expiredMsg || 'Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!';
+
+                // Determine channel label for display
+                const channelLabel = channel === 'whatsapp' ? 'WhatsApp' : channel === 'sms' ? 'SMS' : 'WhatsApp + SMS';
+                const typeLabel = userType === 'before' ? 'Before Expiry' : userType === 'expired' ? 'Expired' : 'All Users';
+                console.log(`[Notify] Starting: ${typeLabel} via ${channelLabel}`);
+
+                // Update progress channel label
+                const progressChannelLabel = document.getElementById('progressChannelLabel');
+                if (progressChannelLabel) {
+                    if (channel === 'whatsapp') progressChannelLabel.textContent = 'WhatsApp';
+                    else if (channel === 'sms') progressChannelLabel.textContent = 'SMS';
+                    else progressChannelLabel.textContent = 'WhatsApp + SMS';
+                }
+
+                // Update SMS circular progress visibility
+                const smsCircProg = document.getElementById('smsCircularProgress');
+                if (smsCircProg) {
+                    if (channel === 'whatsapp') {
+                        smsCircProg.parentElement.style.display = 'none';
+                    } else if (channel === 'sms') {
+                        document.getElementById('circularProgress').parentElement.style.display = 'none';
+                    } else {
+                        smsCircProg.parentElement.style.display = '';
+                        document.getElementById('circularProgress').parentElement.style.display = '';
+                    }
+                }
 
                 // Find columns
                 const headers = table.headers;
@@ -1661,20 +1926,20 @@
 
                 const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number']);
                 const nameCol = findCol(['customer name', 'name', 'customer', 'user']);
-                const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire']);
-                const remainingDaysCol = findCol(['remaining days', 'remaining', 'days left']);
+                const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire', 'validity date', 'expire date', 'expirationdate', 'expirationdate', 'expiration date', 'expiration', 'exp date', 'expdate']);
                 const planCol = findCol(['plan']);
 
-                if (phoneCol === -1) {
-                    alert('Could not find Phone/Mobile column in the table.');
-                    return;
-                }
-                if (expiryCol === -1 && remainingDaysCol === -1) {
-                    alert('Could not find Expiry Date or Remaining Days column.');
+                if (phoneCol === -1 || expiryCol === -1) {
+                    console.log('[Notify] Skipping - missing columns. Phone:', phoneCol, 'Expiry:', expiryCol);
                     return;
                 }
 
-                console.log('[Notify] Columns:', { phoneCol, nameCol, expiryCol, remainingDaysCol, planCol });
+                console.log('[Notify] Headers:', headers);
+                console.log('[Notify] Columns:', { phoneCol, nameCol, expiryCol, planCol });
+                console.log('[Notify] Total rows:', data.length);
+                if (expiryCol === -1) {
+                    console.log('[Notify] Expiry Date column not found. Headers:', headers);
+                }
 
                 // Categorize users
                 const today = new Date();
@@ -1687,51 +1952,43 @@
                     const name = nameCol !== -1 ? (row[nameCol] || 'Customer') : 'Customer';
                     const plan = planCol !== -1 ? (row[planCol] || '') : '';
 
+                    // Only use expiry date to calculate remaining days
                     let remainingDays = null;
-                    let expiryDate = null;
-
-                    // Get remaining days
-                    if (remainingDaysCol !== -1 && row[remainingDaysCol] !== undefined && row[remainingDaysCol] !== '') {
-                        const parsed = parseInt(String(row[remainingDaysCol]));
-                        if (!isNaN(parsed)) remainingDays = parsed;
-                    }
-
-                    // Get expiry date and calculate remaining days
-                    if (remainingDays === null && expiryCol !== -1 && row[expiryCol]) {
-                        const expiryVal = row[expiryCol];
-                        if (expiryVal instanceof Date) {
-                            expiryDate = expiryVal;
-                        } else {
-                            expiryDate = new Date(expiryVal);
-                            if (isNaN(expiryDate.getTime())) {
-                                const parts = String(expiryVal).split(/[\/\-\.]/);
-                                if (parts.length === 3) expiryDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                            }
-                        }
-                        if (expiryDate && !isNaN(expiryDate.getTime())) {
+                    if (row[expiryCol]) {
+                        const expiryDate = parseExpiryDate(row[expiryCol]);
+                        if (expiryDate) {
                             const diffTime = expiryDate.getTime() - today.getTime();
                             remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                         }
                     }
 
+                    // If expiry date couldn't be parsed, skip this user
                     if (remainingDays === null) continue;
 
-                    // Categorize
+                    // Categorize for message content (but ALWAYS include the user)
                     if (remainingDays < 0) {
-                        // Expired
-                        usersToNotify.push({ phone: String(phone), name, plan, days: Math.abs(remainingDays), type: 'expired' });
-                    } else if (remainingDays <= beforeDays) {
-                        // Before expiry
-                        usersToNotify.push({ phone: String(phone), name, plan, days: remainingDays, type: 'before' });
+                        // Expired - use expired message
+                        usersToNotify.push({ phone: String(phone), name, plan, days: Math.abs(remainingDays), type: 'expired', rowData: row.reduce((acc, val, idx) => { acc[headers[idx]] = val; return acc; }, {}) });
+                    } else {
+                        // Not expired yet - use before expiry message
+                        usersToNotify.push({ phone: String(phone), name, plan, days: remainingDays, type: 'before', rowData: row.reduce((acc, val, idx) => { acc[headers[idx]] = val; return acc; }, {}) });
                     }
                 }
 
-                if (usersToNotify.length === 0) {
-                    alert('No users need notification.\n\nBefore Expiry: ' + beforeDays + ' days\nAll users either have more time remaining or are expired beyond notification range.');
+                // Filter users based on userType
+                let filteredUsers = usersToNotify;
+                if (userType === 'before') {
+                    filteredUsers = usersToNotify.filter(u => u.type === 'before');
+                } else if (userType === 'expired') {
+                    filteredUsers = usersToNotify.filter(u => u.type === 'expired');
+                }
+
+                if (filteredUsers.length === 0) {
+                    console.log('[Notify] No users need notification');
                     return;
                 }
 
-                console.log('[Notify] Users to notify:', usersToNotify.length);
+                console.log('[Notify] Users to notify:', filteredUsers.length, '| Channel:', channel);
 
                 // Show progress modal
                 progressState.style.display = 'flex';
@@ -1739,10 +1996,27 @@
                 document.getElementById('progressStatusTextContainer').style.display = 'block';
                 allDoneState.classList.remove('show');
                 progressModal.classList.add('show');
-                circularProgress.classList.add('pulsing');
+                
                 const smsCircularProgress = document.getElementById('smsCircularProgress');
                 const smsProgressPercentText = document.getElementById('smsProgressPercentText');
-                if(smsCircularProgress) smsCircularProgress.classList.add('pulsing');
+                const waParent = circularProgress.parentElement;
+                const smsParent = smsCircularProgress ? smsCircularProgress.parentElement : null;
+                
+                // Show/hide loaders based on channel
+                if (channel === 'whatsapp') {
+                    waParent.style.display = '';
+                    circularProgress.classList.add('pulsing');
+                    if (smsParent) smsParent.style.display = 'none';
+                } else if (channel === 'sms') {
+                    if (smsParent) smsParent.style.display = '';
+                    if (smsCircularProgress) smsCircularProgress.classList.add('pulsing');
+                    waParent.style.display = 'none';
+                } else {
+                    waParent.style.display = '';
+                    smsParent.style.display = '';
+                    circularProgress.classList.add('pulsing');
+                    if (smsCircularProgress) smsCircularProgress.classList.add('pulsing');
+                }
                 
                 circularProgress.style.setProperty('--progress', '0deg');
                 progressPercentText.textContent = '0%';
@@ -1752,7 +2026,7 @@
                 let sentCount = 0;
                 let smsSentCount = 0;
                 let failedCount = 0;
-                const total = usersToNotify.length;
+                const total = filteredUsers.length;
 
                 const animateProgress = (targetPercent, duration) => {
                     return new Promise((resolve) => {
@@ -1780,8 +2054,8 @@
                     });
                 };
 
-                for (let i = 0; i < usersToNotify.length; i++) {
-                    const user = usersToNotify[i];
+                for (let i = 0; i < filteredUsers.length; i++) {
+                    const user = filteredUsers[i];
                     await animateProgress(((i + 1) / total) * 100, 800);
                     progressCount.textContent = `${i + 1}/${total}`;
 
@@ -1791,35 +2065,43 @@
                                     .replace(/{days}/g, user.days)
                                     .replace(/{plan}/g, user.plan);
 
-                    // Send WhatsApp message
-                    try {
-                        const response = await fetch('/api/whatsapp/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ phoneNumber: user.phone, message })
-                        });
-                        const result = await response.json();
-                        if (result.success) sentCount++;
-                        else failedCount++;
-                    } catch (error) {
-                        console.error('Error sending WA message:', error);
-                        failedCount++;
+                    // Track for report (store full row data)
+                    reportData.push({ name: user.name, phone: user.phone, type: user.type, days: user.days, channel: channel, status: 'Sent', rowData: user.rowData || {} });
+
+                    // Send WhatsApp message (only if channel is whatsapp or all)
+                    if (channel === 'whatsapp' || channel === 'all') {
+                        try {
+                            const response = await fetch('/api/whatsapp/send', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ phoneNumber: user.phone, message })
+                            });
+                            const result = await response.json();
+                            if (result.success) sentCount++;
+                            else { failedCount++; reportData[reportData.length-1].status = 'Failed'; }
+                        } catch (error) {
+                            console.error('Error sending WA message:', error);
+                            failedCount++;
+                            reportData[reportData.length-1].status = 'Failed';
+                        }
                     }
                     
-                    // Send SMS
-                    try {
-                        let customApi = localStorage.getItem('smsApiUrl');
-                        if (!customApi) {
-                            customApi = `https://api.smsmobileapi.com/sendsms/?recipients=PHONE_NUMBER&message=HELLOWORLD&apikey=YOUR_API_KEY`;
+                    // Send SMS (only if channel is sms or all)
+                    if (channel === 'sms' || channel === 'all') {
+                        try {
+                            let customApi = localStorage.getItem('smsApiUrl');
+                            if (!customApi) {
+                                customApi = `https://api.smsmobileapi.com/sendsms/?recipients=PHONE_NUMBER&message=HELLOWORLD&apikey=YOUR_API_KEY`;
+                            }
+                            const smsApiUrl = customApi
+                                .replace('PHONE_NUMBER', encodeURIComponent(String(user.phone)))
+                                .replace('HELLOWORLD', encodeURIComponent(message));
+                            
+                            const resSms = await fetch(smsApiUrl, { mode: 'no-cors' });
+                            smsSentCount++;
+                        } catch(e) {
+                            console.error('SMS Error:', e);
                         }
-                        const smsApiUrl = customApi
-                            .replace('PHONE_NUMBER', encodeURIComponent(String(user.phone)))
-                            .replace('HELLOWORLD', encodeURIComponent(message));
-                        
-                        const resSms = await fetch(smsApiUrl, { mode: 'no-cors' });
-                        smsSentCount++;
-                    } catch(e) {
-                        console.error('SMS Error:', e);
                     }
 
                     // Delay between messages
@@ -1833,19 +2115,8 @@
                 progressState.style.opacity = '0';
                 progressState.style.transition = 'opacity 0.3s ease';
                 await new Promise(resolve => setTimeout(resolve, 300));
-                progressState.style.display = 'none';
-
-                allDoneState.style.opacity = '0';
-                allDoneState.style.transform = 'scale(0.8)';
-                allDoneState.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-                allDoneState.classList.add('show');
-                await new Promise(resolve => setTimeout(resolve, 50));
-                allDoneState.style.opacity = '1';
-                allDoneState.style.transform = 'scale(1)';
-
-                totalSent.textContent = sentCount;
-                totalFailed.textContent = failedCount;
-                lucide.createIcons();
+                progressModal.classList.remove('show');
+                showReport();
             }
 
             // ==================== EXCEL UPLOAD ====================
@@ -2147,7 +2418,7 @@
                 }
 
                 if (usersToNotify.length === 0) {
-                    alert('No users found matching the notification criteria.');
+                    console.log('[Notify] No users found matching criteria');
                     return;
                 }
 
@@ -2264,6 +2535,55 @@
             }
 
             // ==================== INIT ====================
+            // ==================== REPORT ====================
+            let reportData = [];
+
+            function showReport() {
+                if (reportData.length === 0) return;
+                const thead = document.getElementById('reportTableHead');
+                const tbody = document.getElementById('reportTableBody');
+                // Get all unique headers from rowData
+                const allHeaders = [];
+                reportData.forEach(row => {
+                    Object.keys(row.rowData || {}).forEach(key => {
+                        if (!allHeaders.includes(key)) allHeaders.push(key);
+                    });
+                });
+                const displayHeaders = [...allHeaders, 'Notification Type', 'Channel', 'Status'];
+                thead.innerHTML = '<tr style="background:rgba(99,102,241,0.2);">' + displayHeaders.map(h => '<th style="padding:0.65rem 0.75rem;text-align:left;color:var(--primary);font-weight:600;white-space:nowrap;">' + h + '</th>').join('') + '</tr>';
+                tbody.innerHTML = reportData.map((row, i) => {
+                    const typeColor = row.type === 'expired' ? 'var(--danger)' : 'var(--success)';
+                    const statusColor = row.status === 'Sent' ? 'var(--success)' : 'var(--danger)';
+                    const cells = allHeaders.map(h => '<td style="padding:0.5rem 0.75rem;color:var(--text-primary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + (row.rowData[h] || '') + '</td>').join('');
+                    return '<tr style="border-bottom:1px solid var(--surface-border);">' + cells + '<td style="padding:0.5rem 0.75rem;color:' + typeColor + ';font-weight:600;">' + row.type + '</td><td style="padding:0.5rem 0.75rem;color:var(--text-primary);">' + row.channel + '</td><td style="padding:0.5rem 0.75rem;color:' + statusColor + ';font-weight:600;">' + row.status + '</td></tr>';
+                }).join('');
+                document.getElementById('reportModal').classList.add('show');
+                lucide.createIcons();
+            }
+
+            document.getElementById('downloadExcelBtn').addEventListener('click', () => {
+                if (reportData.length === 0) return;
+                const allHeaders = [];
+                reportData.forEach(row => {
+                    Object.keys(row.rowData || {}).forEach(key => {
+                        if (!allHeaders.includes(key)) allHeaders.push(key);
+                    });
+                });
+                const displayHeaders = [...allHeaders, 'Notification Type', 'Channel', 'Status'];
+                const ws_data = [displayHeaders];
+                reportData.forEach((row, i) => {
+                    const rowData = allHeaders.map(h => row.rowData[h] || '');
+                    ws_data.push([...rowData, row.type, row.channel, row.status]);
+                });
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Report');
+                XLSX.writeFile(wb, 'supernet report.xlsx');
+            });
+
+            document.getElementById('reportCloseBtn').addEventListener('click', () => { document.getElementById('reportModal').classList.remove('show'); reportData = []; });
+            document.getElementById('reportDoneBtn').addEventListener('click', () => { document.getElementById('reportModal').classList.remove('show'); reportData = []; });
+
             loadStoredTables();
         });
     </script>

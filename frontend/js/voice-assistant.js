@@ -487,7 +487,79 @@
             respond('Done Sir! Total ' + totalWaSent + ' WhatsApp aur ' + totalSmsSent + ' SMS send ho gaye!');
             setTimeout(() => tablesSection.classList.add('sna-hidden'), 6000);
         }
-        
+        // Robust date parser - handles all common formats
+        function parseExpiryDate(val) {
+            if (val === null || val === undefined || val === '') return null;
+            if (val instanceof Date && !isNaN(val.getTime())) return val;
+            if (typeof val === 'number' && val > 30000 && val < 60000) {
+                const excelEpoch = new Date(1899, 11, 30);
+                const d = new Date(excelEpoch.getTime() + val * 86400000);
+                if (!isNaN(d.getTime())) return d;
+            }
+            const str = String(val).trim();
+            if (!str) return null;
+            const monthMap = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+            const monthNames = Object.keys(monthMap);
+            function makeLocalDate(y, m, d) {
+                const date = new Date(y, m, d);
+                if (!isNaN(date.getTime()) && date.getFullYear() === y && date.getMonth() === m && date.getDate() === d) return date;
+                return null;
+            }
+            const lowerStr = str.toLowerCase();
+            const foundMonthIdx = monthNames.findIndex(m => lowerStr.includes(m));
+            if (foundMonthIdx !== -1) {
+                const wordParts = str.replace(/[^a-zA-Z0-9\s]/g, '').trim().split(/\s+/);
+                let month = -1, day = -1, year = -1;
+                for (const wp of wordParts) {
+                    const wl = wp.toLowerCase();
+                    if (monthMap[wl] !== undefined) { month = monthMap[wl]; continue; }
+                    const num = parseInt(wp);
+                    if (isNaN(num)) continue;
+                    if (num > 1900 && num < 2100) { year = num; continue; }
+                    if (num >= 1 && num <= 31 && day === -1) { day = num; continue; }
+                    if (num >= 1 && num <= 12 && month === -1) { month = num - 1; continue; }
+                }
+                if (month !== -1 && day !== -1 && year !== -1) {
+                    const d = makeLocalDate(year, month, day);
+                    if (d) return d;
+                }
+            }
+            const dateOnly = str.split(/[\sT]+/)[0];
+            if (dateOnly !== str) {
+                const d = parseExpiryDate(dateOnly);
+                if (d) return d;
+            }
+            const parts = dateOnly.split(/[\/\-\.]/);
+            if (parts.length >= 3) {
+                let p0 = parseInt(parts[0]);
+                let p1 = parseInt(parts[1]);
+                let p2 = parseInt(parts[2]);
+                if (isNaN(p0) || isNaN(p1) || isNaN(p2)) return null;
+                if (p2 < 100) p2 += 2000;
+                if (p0 > 1900 && p0 < 2100 && p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+                    const d = makeLocalDate(p0, p1 - 1, p2);
+                    if (d) return d;
+                }
+                if (p0 >= 1 && p0 <= 31 && p1 >= 1 && p1 <= 12 && p2 > 1900) {
+                    const d = makeLocalDate(p2, p1 - 1, p0);
+                    if (d) return d;
+                }
+                if (p0 >= 1 && p0 <= 12 && p1 >= 1 && p1 <= 31 && p2 > 1900) {
+                    const d = makeLocalDate(p2, p0 - 1, p1);
+                    if (d) return d;
+                }
+                if (p0 >= 1 && p0 <= 31 && p1 >= 1 && p1 <= 12 && p2 >= 2000 && p2 <= 2099) {
+                    const d = makeLocalDate(p2, p1 - 1, p0);
+                    if (d) return d;
+                }
+            }
+            const fallback = new Date(dateOnly);
+            if (!isNaN(fallback.getTime()) && dateOnly.length >= 8) {
+                return new Date(fallback.getFullYear(), fallback.getMonth(), fallback.getDate());
+            }
+            return null;
+        }
+
         async function sendNotifications(table) {
             const settings = table.notifySettings || {};
             const beforeDays = settings.beforeDays || 7;
@@ -507,10 +579,9 @@
             
             const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'number']);
             const nameCol = findCol(['customer name', 'name', 'customer']);
-            const expiryCol = findCol(['expiry date', 'expiry', 'expir']);
-            const daysCol = findCol(['remaining days', 'remaining', 'days']);
+            const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire', 'expirationdate', 'expiration date', 'expiration', 'exp date']);
             
-            if (phoneCol === -1 || (expiryCol === -1 && daysCol === -1)) {
+            if (phoneCol === -1 || expiryCol === -1) {
                 return { waSent: 0, smsSent: 0 };
             }
             
@@ -525,14 +596,10 @@
                 const name = nameCol !== -1 ? (row[nameCol] || 'Customer') : 'Customer';
                 let days = null;
                 
-                if (daysCol !== -1 && row[daysCol] !== undefined) {
-                    days = parseInt(String(row[daysCol]));
-                    if (isNaN(days)) days = null;
-                }
-                
-                if (days === null && expiryCol !== -1 && row[expiryCol]) {
-                    const exp = new Date(row[expiryCol]);
-                    if (!isNaN(exp.getTime())) {
+                // Only use expiry date to calculate remaining days
+                if (row[expiryCol]) {
+                    const exp = parseExpiryDate(row[expiryCol]);
+                    if (exp) {
                         days = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
                     }
                 }
