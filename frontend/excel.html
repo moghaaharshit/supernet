@@ -1132,7 +1132,7 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                     <label style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">Send before:</label>
-                    <input type="number" id="beforeDays" value="7" min="1" max="365" style="width: 70px; padding: 0.5rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem; text-align: center;">
+                    <input type="number" id="beforeDays" value="0" min="0" max="365" style="width: 70px; padding: 0.5rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem; text-align: center;">
                     <span style="color: var(--text-secondary); font-size: 0.85rem;">days of expiry</span>
                 </div>
                 <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
@@ -1145,6 +1145,9 @@
                         <i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS
                     </button>
                 </div>
+                <button class="notify-action-btn all-btn" id="beforeAllBtn" style="width: 100%; margin-top: 0.5rem;">
+                    <i data-lucide="send" style="width:16px;height:16px;"></i> WhatsApp + SMS
+                </button>
             </div>
 
             <div style="border-top: 1px solid var(--surface-border); padding-top: 1.5rem; margin-bottom: 1.5rem;">
@@ -1162,6 +1165,9 @@
                         <i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS
                     </button>
                 </div>
+                <button class="notify-action-btn all-btn" id="expiredAllBtn" style="width: 100%; margin-top: 0.5rem;">
+                    <i data-lucide="send" style="width:16px;height:16px;"></i> WhatsApp + SMS
+                </button>
             </div>
 
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.75rem; background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-sm); border: 1px solid rgba(99, 102, 241, 0.2);">
@@ -1380,18 +1386,33 @@
                 tableNameInput.style.borderColor = '';
                 
                 try {
+                    console.log('[Save Table] Sending data...');
+                    // Convert Date objects to ISO strings for JSON serialization
+                    const sanitizedData = extractedData.map(row => 
+                        row.map(cell => cell instanceof Date ? cell.toISOString() : cell)
+                    );
                     const response = await fetch('/api/tables', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, headers, data: extractedData })
+                        body: JSON.stringify({ name, headers, data: sanitizedData })
                     });
-                    const result = await response.json();
+                    console.log('[Save Table] Response status:', response.status);
+                    const responseText = await response.text();
+                    console.log('[Save Table] Response text:', responseText.substring(0, 200));
+                    
+                    if (!response.ok) {
+                        throw new Error('Server error: ' + response.status + ' - ' + responseText.substring(0, 100));
+                    }
+                    
+                    const result = JSON.parse(responseText);
                     if (result.id) {
                         tableNameModal.classList.remove('show');
                         dataModal.classList.remove('show');
                         document.body.style.overflow = '';
                         showToast('Table saved successfully!');
                         loadStoredTables();
+                    } else {
+                        throw new Error('No ID returned from server');
                     }
                 } catch (error) {
                     console.error('Error saving table:', error);
@@ -1613,6 +1634,11 @@
                         const newHeaders = jsonData[headerRowIndex] || [];
                         const newData = jsonData.slice(headerRowIndex + 1);
 
+                        // Convert Date objects to ISO strings for JSON serialization
+                        const sanitizedNewData = newData.map(row => 
+                            row.map(cell => cell instanceof Date ? cell.toISOString() : cell)
+                        );
+
                         // Update in Firebase
                         await fetch(`/api/tables/${editingTableId}`, {
                             method: 'PUT',
@@ -1620,7 +1646,7 @@
                             body: JSON.stringify({ 
                                 name: editingTableData.name, 
                                 headers: newHeaders, 
-                                data: newData 
+                                data: sanitizedNewData 
                             })
                         });
 
@@ -1670,7 +1696,7 @@
 
                 // Load saved settings or use defaults
                 const settings = table.notifySettings || {};
-                document.getElementById('beforeDays').value = settings.beforeDays || 7;
+                document.getElementById('beforeDays').value = settings.beforeDays !== undefined ? settings.beforeDays : 0;
                 document.getElementById('beforeExpiryMsg').value = settings.beforeExpiryMsg || 'Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!';
                 document.getElementById('expiredMsg').value = settings.expiredMsg || 'Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!';
 
@@ -1694,13 +1720,17 @@
                     const tableIndex = storedTables.findIndex(t => t.id === currentNotifyTableId);
                     if (tableIndex !== -1) {
                         storedTables[tableIndex].notifySettings = settings;
+                        // Convert Date objects to ISO strings for JSON serialization
+                        const sanitizedData = storedTables[tableIndex].data.map(row => 
+                            row.map(cell => cell instanceof Date ? cell.toISOString() : cell)
+                        );
                         await fetch(`/api/tables/${currentNotifyTableId}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 name: storedTables[tableIndex].name,
                                 headers: storedTables[tableIndex].headers,
-                                data: storedTables[tableIndex].data,
+                                data: sanitizedData,
                                 notifySettings: settings
                             })
                         });
@@ -1739,6 +1769,14 @@
                 await startNotifyProcess(table, 'before', 'sms');
             });
 
+            // Before Expiry - WhatsApp + SMS button
+            document.getElementById('beforeAllBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'before', 'all');
+            });
+
             // Expired - WhatsApp button
             document.getElementById('expiredWaBtn').addEventListener('click', async () => {
                 const table = await getTableForNotify();
@@ -1753,6 +1791,14 @@
                 if (!table) return;
                 notifyModal.classList.remove('show');
                 await startNotifyProcess(table, 'expired', 'sms');
+            });
+
+            // Expired - WhatsApp + SMS button
+            document.getElementById('expiredAllBtn').addEventListener('click', async () => {
+                const table = await getTableForNotify();
+                if (!table) return;
+                notifyModal.classList.remove('show');
+                await startNotifyProcess(table, 'expired', 'all');
             });
 
             // Notify All button
@@ -1882,7 +1928,7 @@
             // ==================== NOTIFY PROCESS ====================
             async function startNotifyProcess(table, userType = 'all', channel = 'all') {
                 const settings = table.notifySettings || {};
-                const beforeDays = settings.beforeDays || 7;
+                const beforeDays = settings.beforeDays !== undefined ? settings.beforeDays : 0;
                 const beforeExpiryMsg = settings.beforeExpiryMsg || 'Hello {name} 👋, Your WiFi plan is expiring in {days} days. Please recharge soon to avoid service interruption. Thank you!';
                 const expiredMsg = settings.expiredMsg || 'Hello {name} 👋, Your WiFi plan has expired {days} days ago. Please recharge immediately to restore your internet service. Thank you!';
 
@@ -1924,10 +1970,10 @@
                     return -1;
                 };
 
-                const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number']);
+                const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number', 'pho', 'phom']);
                 const nameCol = findCol(['customer name', 'name', 'customer', 'user']);
-                const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire', 'validity date', 'expire date', 'expirationdate', 'expirationdate', 'expiration date', 'expiration', 'exp date', 'expdate']);
-                const planCol = findCol(['plan']);
+                const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'valid', 'expire', 'validity date', 'expire date', 'expirationdate', 'expirationdate', 'expiration date', 'expiration', 'exp date', 'expdate']);
+                const planCol = findCol(['plan', 'package']);
 
                 if (phoneCol === -1 || expiryCol === -1) {
                     console.log('[Notify] Skipping - missing columns. Phone:', phoneCol, 'Expiry:', expiryCol);
@@ -2409,7 +2455,7 @@
                     }
 
                     if (diffDays === null) continue;
-                    if (sendBefore && diffDays > 0 && diffDays <= beforeDaysValue) {
+                    if (sendBefore && diffDays >= 0 && diffDays <= beforeDaysValue) {
                         usersToNotify.push({ phone: String(phone), name: String(name), expiryDate, diffDays, type: 'before' });
                     }
                     if (sendAfter && diffDays < 0 && Math.abs(diffDays) <= afterDaysValue) {

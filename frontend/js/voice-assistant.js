@@ -562,7 +562,7 @@
 
         async function sendNotifications(table) {
             const settings = table.notifySettings || {};
-            const beforeDays = settings.beforeDays || 7;
+            const beforeDays = settings.beforeDays !== undefined ? settings.beforeDays : 0;
             const beforeMsg = settings.beforeExpiryMsg || 'Hello {name}, your WiFi plan is expiring in {days} days. Please recharge soon.';
             const expiredMsg = settings.expiredMsg || 'Hello {name}, your WiFi plan has expired {days} days ago.';
             
@@ -577,9 +577,9 @@
                 return -1;
             };
             
-            const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'number']);
+            const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'number', 'pho', 'phom']);
             const nameCol = findCol(['customer name', 'name', 'customer']);
-            const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire', 'expirationdate', 'expiration date', 'expiration', 'exp date']);
+            const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'valid', 'expire', 'expirationdate', 'expiration date', 'expiration', 'exp date']);
             
             if (phoneCol === -1 || expiryCol === -1) {
                 return { waSent: 0, smsSent: 0 };
@@ -609,7 +609,7 @@
                 let msg;
                 if (days < 0) {
                     msg = expiredMsg.replace(/{name}/g, name).replace(/{days}/g, Math.abs(days));
-                } else if (days <= beforeDays) {
+                } else if (days >= 0 && days <= beforeDays) {
                     msg = beforeMsg.replace(/{name}/g, name).replace(/{days}/g, days);
                 } else {
                     continue;

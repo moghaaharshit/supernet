@@ -455,7 +455,7 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
                     <label style="color: var(--text-secondary); font-size: 0.9rem;">Send before:</label>
-                    <input type="number" id="beforeDays" value="7" min="1" max="365" style="width: 70px; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem; text-align: center;">
+                    <input type="number" id="beforeDays" value="0" min="0" max="365" style="width: 70px; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--surface-border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 1rem; text-align: center;">
                     <span style="color: var(--text-secondary); font-size: 0.85rem;">days of expiry</span>
                 </div>
                 <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Message to send:</label>
@@ -464,6 +464,9 @@
                     <button class="notify-action-btn wa-btn" id="beforeWaBtn"><i data-lucide="message-square" style="width:16px;height:16px;"></i> WhatsApp</button>
                     <button class="notify-action-btn sms-btn" id="beforeSmsBtn"><i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS</button>
                 </div>
+                <button class="notify-action-btn all-btn" id="beforeAllBtn" style="width: 100%; margin-top: 0.5rem;">
+                    <i data-lucide="send" style="width:16px;height:16px;"></i> WhatsApp + SMS
+                </button>
             </div>
             <div style="border-top: 1px solid var(--surface-border); padding-top: 1.5rem; margin-bottom: 1.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
@@ -476,6 +479,9 @@
                     <button class="notify-action-btn wa-btn" id="expiredWaBtn"><i data-lucide="message-square" style="width:16px;height:16px;"></i> WhatsApp</button>
                     <button class="notify-action-btn sms-btn" id="expiredSmsBtn"><i data-lucide="smartphone" style="width:16px;height:16px;"></i> SMS</button>
                 </div>
+                <button class="notify-action-btn all-btn" id="expiredAllBtn" style="width: 100%; margin-top: 0.5rem;">
+                    <i data-lucide="send" style="width:16px;height:16px;"></i> WhatsApp + SMS
+                </button>
             </div>
             <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.75rem; background: rgba(99,102,241,0.1); border-radius: var(--radius-sm); border: 1px solid rgba(99,102,241,0.2);">
                 <strong>Variables:</strong> Use <code>{name}</code> for user name, <code>{days}</code> for days
@@ -697,7 +703,7 @@
             if (!table) return;
             document.getElementById('notifyModalTitle').textContent = 'Notify - ' + table.name;
             const settings = table.notifySettings || {};
-            document.getElementById('beforeDays').value = settings.beforeDays || 7;
+            document.getElementById('beforeDays').value = settings.beforeDays !== undefined ? settings.beforeDays : 0;
             document.getElementById('beforeExpiryMsg').value = settings.beforeExpiryMsg || 'Hello {name}, Your WiFi plan is expiring in {days} days. Please recharge soon.';
             document.getElementById('expiredMsg').value = settings.expiredMsg || 'Hello {name}, Your WiFi plan has expired {days} days ago. Please recharge immediately.';
             document.getElementById('notifyModal').classList.add('show');
@@ -708,7 +714,7 @@
         document.getElementById('notifySaveSettingsBtn').addEventListener('click', async () => {
             if (!currentNotifyTableId) return;
             const settings = {
-                beforeDays: parseInt(document.getElementById('beforeDays').value) || 7,
+                beforeDays: parseInt(document.getElementById('beforeDays').value) || 0,
                 beforeExpiryMsg: document.getElementById('beforeExpiryMsg').value,
                 expiredMsg: document.getElementById('expiredMsg').value
             };
@@ -716,10 +722,14 @@
                 const idx = storedTables.findIndex(t => t.id === currentNotifyTableId);
                 if (idx !== -1) {
                     storedTables[idx].notifySettings = settings;
+                    // Convert Date objects to ISO strings for JSON serialization
+                    const sanitizedData = storedTables[idx].data.map(row => 
+                        row.map(cell => cell instanceof Date ? cell.toISOString() : cell)
+                    );
                     await fetch('/api/tables/' + currentNotifyTableId, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: storedTables[idx].name, headers: storedTables[idx].headers, data: storedTables[idx].data, notifySettings: settings })
+                        body: JSON.stringify({ name: storedTables[idx].name, headers: storedTables[idx].headers, data: sanitizedData, notifySettings: settings })
                     });
                 }
             } catch (e) { console.error('Error saving settings:', e); }
@@ -732,12 +742,12 @@
             return table;
         }
 
-        ['beforeWaBtn', 'beforeSmsBtn', 'expiredWaBtn', 'expiredSmsBtn', 'notifyAllBtn'].forEach(id => {
+        ['beforeWaBtn', 'beforeSmsBtn', 'beforeAllBtn', 'expiredWaBtn', 'expiredSmsBtn', 'expiredAllBtn', 'notifyAllBtn'].forEach(id => {
             document.getElementById(id).addEventListener('click', async () => {
                 const table = await getTableForNotify();
                 if (!table) return;
                 document.getElementById('notifyModal').classList.remove('show');
-                const mapping = { beforeWaBtn: ['before','whatsapp'], beforeSmsBtn: ['before','sms'], expiredWaBtn: ['expired','whatsapp'], expiredSmsBtn: ['expired','sms'], notifyAllBtn: ['all','all'] };
+                const mapping = { beforeWaBtn: ['before','whatsapp'], beforeSmsBtn: ['before','sms'], beforeAllBtn: ['before','all'], expiredWaBtn: ['expired','whatsapp'], expiredSmsBtn: ['expired','sms'], expiredAllBtn: ['expired','all'], notifyAllBtn: ['all','all'] };
                 await startNotifyProcess(table, mapping[id][0], mapping[id][1]);
             });
         });
@@ -797,15 +807,15 @@
 
         async function startNotifyProcess(table, userType = 'all', channel = 'all', showDone = true) {
             const settings = table.notifySettings || {};
-            const beforeDays = settings.beforeDays || 7;
+            const beforeDays = settings.beforeDays !== undefined ? settings.beforeDays : 0;
             const beforeExpiryMsg = settings.beforeExpiryMsg || 'Hello {name}, Your WiFi plan is expiring in {days} days.';
             const expiredMsg = settings.expiredMsg || 'Hello {name}, Your WiFi plan has expired {days} days ago.';
             const headers = table.headers;
             const data = table.data;
             const findCol = (names) => { for (const name of names) { const idx = headers.findIndex(h => String(h).toLowerCase().trim().includes(name.toLowerCase())); if (idx !== -1) return idx; } return -1; };
-            const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number']);
+            const phoneCol = findCol(['phone', 'mobile', 'whatsapp', 'contact', 'number', 'pho', 'phom']);
             const nameCol = findCol(['customer name', 'name', 'customer', 'user', 'subscribername']);
-            const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'expire', 'expirationdate', 'expiration date', 'expiration', 'exp date']);
+            const expiryCol = findCol(['expiry date', 'expiry', 'expir', 'validity', 'valid', 'expire', 'expirationdate', 'expiration date', 'expiration', 'exp date']);
             if (phoneCol === -1 || expiryCol === -1) { console.log('[Notify] Skipping table - missing columns. Phone:', phoneCol, 'Expiry:', expiryCol); return; }
             const today = new Date();
             const usersToNotify = [];
@@ -944,17 +954,17 @@
             if (storedTables.length === 0) { console.log('[Notify] No tables stored'); return; }
             currentNotifyTableId = 'COMBINE_ALL';
             document.getElementById('notifyModalTitle').textContent = 'Notify All Tables';
-            document.getElementById('beforeDays').value = 7;
+            document.getElementById('beforeDays').value = 0;
             document.getElementById('beforeExpiryMsg').value = 'Hello {name}, Your WiFi plan is expiring in {days} days. Please recharge soon.';
             document.getElementById('expiredMsg').value = 'Hello {name}, Your WiFi plan has expired {days} days ago. Please recharge immediately.';
             document.getElementById('notifyModal').classList.add('show');
         });
 
         // Override notify buttons for COMBINE_ALL mode
-        ['beforeWaBtn', 'beforeSmsBtn', 'expiredWaBtn', 'expiredSmsBtn', 'notifyAllBtn'].forEach(id => {
+        ['beforeWaBtn', 'beforeSmsBtn', 'beforeAllBtn', 'expiredWaBtn', 'expiredSmsBtn', 'expiredAllBtn', 'notifyAllBtn'].forEach(id => {
             document.getElementById(id).removeEventListener('click', null);
             document.getElementById(id).addEventListener('click', async () => {
-                const mapping = { beforeWaBtn: ['before','whatsapp'], beforeSmsBtn: ['before','sms'], expiredWaBtn: ['expired','whatsapp'], expiredSmsBtn: ['expired','sms'], notifyAllBtn: ['all','all'] };
+                const mapping = { beforeWaBtn: ['before','whatsapp'], beforeSmsBtn: ['before','sms'], beforeAllBtn: ['before','all'], expiredWaBtn: ['expired','whatsapp'], expiredSmsBtn: ['expired','sms'], expiredAllBtn: ['expired','all'], notifyAllBtn: ['all','all'] };
                 const [userType, channel] = mapping[id];
                 document.getElementById('notifyModal').classList.remove('show');
 
@@ -966,7 +976,7 @@
                     for (let i = 0; i < tablesWithData.length; i++) {
                         const table = tablesWithData[i];
                         const settings = document.getElementById('beforeExpiryMsg').value ? {
-                            beforeDays: parseInt(document.getElementById('beforeDays').value) || 7,
+                            beforeDays: parseInt(document.getElementById('beforeDays').value) || 0,
                             beforeExpiryMsg: document.getElementById('beforeExpiryMsg').value,
                             expiredMsg: document.getElementById('expiredMsg').value
                         } : (table.notifySettings || {});

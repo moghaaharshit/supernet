@@ -37,3 +37,4 @@ temp/
 
 # Package lock (optional - some prefer to commit it)
 # package-lock.json
+node_modules
